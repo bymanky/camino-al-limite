@@ -4,7 +4,7 @@ Inscripciones del trail de 5 km en el marco de **Emprende Camino**, producido po
 
 ## Estado de entrega
 
-El sitio está publicado en https://esconvosjuventud-creator.github.io/camino-al-limite/ y el backend está preparado. La conexión al proyecto real queda pendiente de seleccionar la nueva organización de Supabase. Sin variables de conexión, la web permite recorrer el formulario pero bloquea el envío y el acceso administrativo; no simula inscripciones exitosas. No se usa la base de datos de otra aplicación.
+El repositorio pertenece a `bymanky/camino-al-limite`. La dirección de publicación configurada es https://bymanky.github.io/camino-al-limite/ y el backend está preparado. La conexión al proyecto real queda pendiente de seleccionar la nueva organización de Supabase. Sin variables de conexión, la web permite recorrer el formulario pero bloquea el envío y el acceso administrativo; no simula inscripciones exitosas. No se usa la base de datos de otra aplicación.
 
 ## Qué incluye
 
@@ -24,7 +24,7 @@ El sitio está publicado en https://esconvosjuventud-creator.github.io/camino-al
 2. En SQL Editor, ejecutar **una sola vez** `supabase/sql/schema.sql`. Es un esquema inicial para un proyecto vacío, no una actualización para otra aplicación.
 3. El esquema crea tablas, funciones de transacción, permisos y el bucket privado `trail-receipts`. Las tablas no tienen acceso para `anon` ni `authenticated`: todo pasa por la Edge Function, que valida la sesión y el administrador.
 4. En Authentication, deshabilitar la creación pública de usuarios. Los participantes se inscriben sin cuentas y no necesitan esta función.
-5. En Authentication > URL Configuration, configurar como Site URL la dirección de GitHub Pages y permitir como redirect la dirección completa de recuperación: `https://esconvosjuventud-creator.github.io/camino-al-limite/?recovery=1#/admin`. Agregar también la URL local si se prueba recuperación en desarrollo.
+5. En Authentication > URL Configuration, configurar como Site URL la dirección de GitHub Pages y permitir como redirect la dirección completa de recuperación: `https://bymanky.github.io/camino-al-limite/?recovery=1#/admin`. Agregar también la URL local si se prueba recuperación en desarrollo.
 6. Configurar el correo de recuperación de Supabase con un proveedor SMTP de la organización. Verificar el envío real antes de abrir las inscripciones.
 
 ### Primer administrador
@@ -57,7 +57,7 @@ La configuración `verify_jwt = false` es intencional para permitir el formulari
 Secretos adicionales del backend (guardar fuera del repositorio y nunca en variables `VITE_`):
 
 ```text
-ALLOWED_ORIGINS=https://esconvosjuventud-creator.github.io,http://127.0.0.1:5174
+ALLOWED_ORIGINS=https://bymanky.github.io,http://127.0.0.1:5174
 TRAIL_TOKEN_SECRET=VALOR_ALEATORIO_PRIVADO_DE_AL_MENOS_32_CARACTERES
 ```
 
@@ -90,14 +90,14 @@ Nunca usar `service_role`, claves secretas o contraseñas en el frontend, en Git
 
 ## 4. GitHub Pages
 
-Repositorio previsto: `esconvosjuventud-creator/camino-al-limite`.
+Repositorio previsto: `bymanky/camino-al-limite`.
 
 1. En Settings > Pages, seleccionar **GitHub Actions** como origen.
 2. En Settings > Secrets and variables > Actions > Variables, agregar `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY`.
 3. Subir el código a `main` o volver a ejecutar la acción **Publicar Camino al Limite**.
 4. La acción instala desde el lockfile, ejecuta pruebas, compila y publica el sitio.
 
-Dirección esperada: `https://esconvosjuventud-creator.github.io/camino-al-limite/`. El panel se abre desde el enlace Administración o agregando `#/admin` al final.
+Dirección esperada: `https://bymanky.github.io/camino-al-limite/`. El panel se abre desde el enlace Administración o agregando `#/admin` al final.
 
 El sitio usa rutas con `#` y recursos relativos para que funcione en la subcarpeta de GitHub Pages. La cámara requiere HTTPS o localhost y permiso del usuario.
 
