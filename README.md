@@ -4,7 +4,7 @@ Inscripciones del trail de 5 km en el marco de **Emprende Camino**, producido po
 
 ## Estado de entrega
 
-La aplicación y el backend están preparados. La conexión al proyecto real queda pendiente de seleccionar la nueva organización de Supabase. Sin variables de conexión, la web permite recorrer el formulario pero bloquea el envío y el acceso administrativo; no simula inscripciones exitosas. No se usa la base de datos de otra aplicación.
+El sitio está publicado en https://esconvosjuventud-creator.github.io/camino-al-limite/ y el backend está preparado. La conexión al proyecto real queda pendiente de seleccionar la nueva organización de Supabase. Sin variables de conexión, la web permite recorrer el formulario pero bloquea el envío y el acceso administrativo; no simula inscripciones exitosas. No se usa la base de datos de otra aplicación.
 
 ## Qué incluye
 
@@ -109,7 +109,7 @@ No se inventan reglamentos, consentimientos ni datos del evento. Las versiones d
 
 ## Validación
 
-Pruebas automáticas incluidas: reglas de equipos, duplicados, consentimiento, CSV con ceros iniciales y protección contra fórmulas, precio validado en base, transacciones completas, reintentos sin duplicados, permisos para visitantes y usuarios comunes, autorización administrativa, auditoría, asistencia idempotente y cancelación. La base SQL se verifica con Postgres embebido (PGlite), con tablas de Auth y Storage de prueba; no sustituye la comprobación de los servicios reales de Supabase.
+21 pruebas automáticas incluidas: reglas de equipos, duplicados, consentimiento, CSV con ceros iniciales y protección contra fórmulas, precio validado en base, transacciones completas, reintentos sin duplicados, permisos para visitantes y usuarios comunes, autorización administrativa, auditoría, asistencia idempotente, cancelación, PDF con cuatro integrantes y QR, y paginación de la nómina. La base SQL se verifica con Postgres embebido (PGlite), con tablas de Auth y Storage de prueba; no sustituye la comprobación de los servicios reales de Supabase. También se comprobó el formulario en un navegador con pantalla de celular y se inspeccionó visualmente un PDF generado con datos ficticios.
 
 Antes de admitir participantes reales, verificar en el proyecto final:
 

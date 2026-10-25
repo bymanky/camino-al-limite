@@ -123,7 +123,13 @@ export default function App() {
         </button>
       </header>
       {admin ? (
-        <Suspense fallback={<main className="form-shell">Cargando administración…</main>}><Admin /></Suspense>
+        <Suspense
+          fallback={
+            <main className="form-shell">Cargando administración…</main>
+          }
+        >
+          <Admin />
+        </Suspense>
       ) : route.startsWith("#/comprobante/") ? (
         <Receipt token={route.split("/")[2]} />
       ) : route === "#/inscripcion" ? (
@@ -489,6 +495,16 @@ function Registration({ settings }: { settings: Settings }) {
         {done.warning && (
           <div className="notice error" role="alert">
             {done.warning}
+            <br />
+            <button
+              className="text-button"
+              onClick={() => {
+                setDone(null);
+                setStep(2);
+              }}
+            >
+              Reintentar adjuntar sin duplicar la inscripción
+            </button>
           </div>
         )}
         <div className="notice">
