@@ -1,0 +1,4 @@
+project_id = "camino-al-limite"
+[functions.trail-api]
+verify_jwt = false
+# La función acepta inscripciones públicas y verifica JWT + rol en CADA acción administrativa.
