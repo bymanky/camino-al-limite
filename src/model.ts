@@ -81,6 +81,8 @@ export type Team = {
   status: string;
   notes: string;
   created_at: string;
+  deleted_at?: string | null;
+  removed_members?: Member[];
   receipt_path?: string;
   members: Member[];
   qr?: string;

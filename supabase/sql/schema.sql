@@ -18,13 +18,13 @@ create table public.trail_teams (
  method text not null check(method in ('ecos','fomento','transferencia')), amount int not null default 1200 check(amount=1200),
  payment text not null default 'pendiente' check(payment in ('pendiente','en_revision','confirmado')),
  status text not null default 'activa' check(status in ('activa','cancelada')), notes text not null default '',
- receipt_path text, created_at timestamptz not null default now(), accepted_at timestamptz not null default now(),
+ deleted_at timestamptz, receipt_path text, created_at timestamptz not null default now(), accepted_at timestamptz not null default now(),
  accepted_rules text not null, accepted_privacy text not null
 );
 create table public.trail_members (
  id uuid primary key default gen_random_uuid(), team_id uuid not null references public.trail_teams(id) on delete cascade,
  name text not null check(length(name) between 3 and 100), document text not null check(length(document) between 5 and 30),
- position int not null check(position between 1 and 4), present_at timestamptz, present_by uuid references auth.users(id),
+ deleted_at timestamptz, position int not null check(position between 1 and 4), present_at timestamptz, present_by uuid references auth.users(id),
  unique(team_id,position), unique(team_id,document)
 );
 create table trail_private.tokens(team_id uuid primary key references public.trail_teams(id) on delete cascade, receipt_hash text not null unique, qr_hash text not null unique, idempotency uuid unique not null, request_hash text not null);
@@ -57,7 +57,7 @@ declare n int;begin
  return n<=p_limit;
 end $$;
 create function public.trail_team(p_id uuid) returns jsonb language sql stable security invoker set search_path='' as $$
- select (to_jsonb(t)-'accepted_rules'-'accepted_privacy') || jsonb_build_object('members',coalesce((select jsonb_agg(to_jsonb(m)-'team_id' order by position) from public.trail_members m where m.team_id=t.id),'[]'::jsonb)) from public.trail_teams t where t.id=p_id
+ select (to_jsonb(t)-'accepted_rules'-'accepted_privacy') || jsonb_build_object('members',coalesce((select jsonb_agg(to_jsonb(m)-'team_id' order by position) from public.trail_members m where m.team_id=t.id and m.deleted_at is null),'[]'::jsonb),'removed_members',coalesce((select jsonb_agg(to_jsonb(m)-'team_id' order by position) from public.trail_members m where m.team_id=t.id and m.deleted_at is not null),'[]'::jsonb)) from public.trail_teams t where t.id=p_id
 $$;
 create function public.trail_register(p jsonb,p_receipt_hash text,p_qr_hash text,p_request_hash text) returns uuid language plpgsql security invoker set search_path='' as $$
 declare s public.trail_settings; t uuid; prior trail_private.tokens; m jsonb; i int=0;begin
@@ -80,18 +80,18 @@ declare s public.trail_settings; t uuid; prior trail_private.tokens; m jsonb; i 
  insert into trail_private.tokens values(t,p_receipt_hash,p_qr_hash,(p->>'idempotency')::uuid,p_request_hash);
  return t;
 end $$;
-create function public.trail_receipt_id(p_hash text) returns uuid language sql stable security invoker set search_path='' as $$select team_id from trail_private.tokens where receipt_hash=p_hash$$;
+create function public.trail_receipt_id(p_hash text) returns uuid language sql stable security invoker set search_path='' as $$select k.team_id from trail_private.tokens k join public.trail_teams t on t.id=k.team_id where k.receipt_hash=p_hash and t.deleted_at is null$$;
 create function public.trail_receipt_seed(p_id uuid) returns text language sql stable security invoker set search_path='' as $$select idempotency::text from trail_private.tokens where team_id=p_id$$;
-create function public.trail_lookup(p_code text,p_hash text) returns uuid language sql stable security invoker set search_path='' as $$select t.id from public.trail_teams t join trail_private.tokens k on k.team_id=t.id where t.code=upper(p_code) or k.qr_hash=p_hash limit 1$$;
+create function public.trail_lookup(p_code text,p_hash text) returns uuid language sql stable security invoker set search_path='' as $$select t.id from public.trail_teams t join trail_private.tokens k on k.team_id=t.id where t.deleted_at is null and (t.code=upper(p_code) or k.qr_hash=p_hash) limit 1$$;
 create function public.trail_admin_update(p_admin uuid,p_id uuid,p_patch jsonb) returns jsonb language plpgsql security invoker set search_path='' as $$
 declare m jsonb;begin
  if not public.trail_is_admin(p_admin) then raise exception 'Acceso denegado';end if;
- perform 1 from public.trail_teams where id=p_id for update;if not found then raise exception 'Inscripción inexistente';end if;
+ perform 1 from public.trail_teams where id=p_id and deleted_at is null for update;if not found then raise exception 'Inscripción inexistente';end if;
  update public.trail_teams set team=coalesce(p_patch->>'team',team),responsible=coalesce(p_patch->>'responsible',responsible),phone=coalesce(p_patch->>'phone',phone),email=coalesce(p_patch->>'email',email),notes=coalesce(p_patch->>'notes',notes),payment=coalesce(p_patch->>'payment',payment),status=coalesce(p_patch->>'status',status) where id=p_id;
  if p_patch ? 'members' then
-  if jsonb_array_length(p_patch->'members')<>(select count(*) from public.trail_members where team_id=p_id) then raise exception 'No se pueden agregar ni quitar integrantes desde la corrección';end if;
+  if jsonb_array_length(p_patch->'members')<>(select count(*) from public.trail_members where team_id=p_id and deleted_at is null) or (select count(distinct x->>'id') from jsonb_array_elements(p_patch->'members') x)<>jsonb_array_length(p_patch->'members') then raise exception 'La lista de integrantes cambió. Actualizá la inscripción';end if;
   for m in select * from jsonb_array_elements(p_patch->'members') loop
-   update public.trail_members set name=m->>'name',document=m->>'document' where id=(m->>'id')::uuid and team_id=p_id;
+   update public.trail_members set name=m->>'name',document=m->>'document' where id=(m->>'id')::uuid and team_id=p_id and deleted_at is null;
    if not found then raise exception 'Integrante inválido';end if;
   end loop;
  end if;
@@ -101,8 +101,8 @@ end $$;
 create function public.trail_attend(p_admin uuid,p_id uuid,p_ids uuid[]) returns jsonb language plpgsql security invoker set search_path='' as $$
 declare m record;begin
  if not public.trail_is_admin(p_admin) then raise exception 'Acceso denegado';end if;
- perform 1 from public.trail_teams where id=p_id and status='activa' for update;if not found then raise exception 'Inscripción inexistente o cancelada';end if;
- if cardinality(p_ids) not between 1 and 4 or exists(select 1 from unnest(p_ids) x where not exists(select 1 from public.trail_members where id=x and team_id=p_id)) then raise exception 'Integrantes inválidos';end if;
+ perform 1 from public.trail_teams where id=p_id and deleted_at is null and status='activa' for update;if not found then raise exception 'Inscripción inexistente o cancelada';end if;
+ if cardinality(p_ids) not between 1 and 4 or exists(select 1 from unnest(p_ids) x where not exists(select 1 from public.trail_members where id=x and team_id=p_id and deleted_at is null)) then raise exception 'Integrantes inválidos';end if;
  for m in update public.trail_members set present_at=now(),present_by=p_admin where team_id=p_id and id=any(p_ids) and present_at is null returning id loop
   insert into public.trail_audit(admin_id,team_id,action,details) values(p_admin,p_id,'asistencia',jsonb_build_object('participante',m.id));
  end loop;
@@ -115,6 +115,22 @@ declare s public.trail_settings;begin
  if (p->>'open')::boolean and (coalesce(p->>'rules','')='' or coalesce(p->>'privacy','')='') then raise exception 'Publicá el reglamento y el aviso de privacidad antes de abrir';end if;
  update public.trail_settings set date=p->>'date',time=p->>'time',location=p->>'location',deadline=p->>'deadline',contact=p->>'contact',rules=p->>'rules',privacy=p->>'privacy',open=(p->>'open')::boolean,min_members=4 where id=1 returning * into s;
  insert into public.trail_audit(admin_id,action,details) values(p_admin,'configuracion',jsonb_build_object('abiertas',s.open));return to_jsonb(s);
+end $$;
+create function public.trail_admin_remove(p_admin uuid,p_id uuid,p_member uuid,p_restore boolean) returns jsonb language plpgsql security invoker set search_path='' as $$
+declare changed int;begin
+ if not public.trail_is_admin(p_admin) then raise exception 'Acceso denegado';end if;
+ perform 1 from public.trail_teams where id=p_id for update;
+ if not found then raise exception 'Inscripción inexistente';end if;
+ if p_member is null then
+  update public.trail_teams set deleted_at=case when p_restore then null else now() end where id=p_id and (deleted_at is not null)=p_restore;
+ else
+  if exists(select 1 from public.trail_teams where id=p_id and deleted_at is not null) then raise exception 'Restaurá primero el equipo';end if;
+  update public.trail_members set deleted_at=case when p_restore then null else now() end where id=p_member and team_id=p_id and (deleted_at is not null)=p_restore;
+ end if;
+ get diagnostics changed=row_count;
+ if changed=0 then raise exception 'El registro cambió. Actualizá la inscripción';end if;
+ insert into public.trail_audit(admin_id,team_id,action,details) values(p_admin,p_id,case when p_restore then 'restauracion' else 'papelera' end,jsonb_build_object('participante',p_member));
+ return public.trail_team(p_id);
 end $$;
 -- Los RPC también están bloqueados para visitantes y usuarios comunes.
 do $$declare f record;begin for f in select oid::regprocedure as signature from pg_proc where pronamespace='public'::regnamespace and proname like 'trail_%' loop execute format('revoke all on function %s from public, anon, authenticated',f.signature);execute format('grant execute on function %s to service_role',f.signature);end loop;end $$;

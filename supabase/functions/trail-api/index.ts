@@ -58,7 +58,7 @@ const patchSchema = z
     status: z.literal("cancelada").optional(),
     members: z
       .array(member.extend({ id: z.string().uuid() }))
-      .min(1)
+      .min(0)
       .max(4)
       .optional(),
   })
@@ -354,7 +354,7 @@ Deno.serve(async (req) => {
         const { data, error } = await root
           .from("trail_teams")
           .select(
-            "id,code,team,responsible,phone,email,method,amount,payment,status,notes,created_at,receipt_path,members:trail_members(id,name,document,position,present_at)",
+            "id,code,team,responsible,phone,email,method,amount,payment,status,notes,created_at,receipt_path,deleted_at,members:trail_members(id,name,document,position,present_at,deleted_at)",
           )
           .order("created_at", { ascending: false })
           .order("id")
@@ -363,9 +363,12 @@ Deno.serve(async (req) => {
         teams.push(
           ...data.map((t) => ({
             ...t,
-            members: t.members.sort(
-              (a: any, b: any) => a.position - b.position,
-            ),
+            removed_members: t.members
+              .filter((m: any) => m.deleted_at)
+              .sort((a: any, b: any) => a.position - b.position),
+            members: t.members
+              .filter((m: any) => !m.deleted_at)
+              .sort((a: any, b: any) => a.position - b.position),
           })),
         );
         if (data.length < 500) break;
@@ -396,6 +399,15 @@ Deno.serve(async (req) => {
         }),
       );
     const id = z.string().uuid().parse(b.id);
+    if (b.action === "admin-remove")
+      return reply(
+        await rpc("trail_admin_remove", {
+          p_admin: actor,
+          p_id: id,
+          p_member: z.string().uuid().nullable().parse(b.member),
+          p_restore: z.boolean().parse(b.restore),
+        }),
+      );
     if (b.action === "admin-update")
       return reply(
         await rpc("trail_admin_update", {

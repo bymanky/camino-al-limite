@@ -1383,3 +1383,35 @@ summary {
     padding: 40px 20px;
   }
 }
+
+.qr-reader {
+  width: 100%;
+  max-width: 450px;
+  margin: 0 0 20px;
+  min-height: 1px;
+}
+.qr-reader video {
+  width: 100% !important;
+  max-height: 65vh;
+  object-fit: contain;
+}
+.scanner-panel {
+  max-width: 500px;
+}
+.qr-photo {
+  margin-top: 20px;
+}
+.scanner-panel .muted {
+  font-size: 0.85rem;
+}
+.team-editor {
+  margin: 24px 0;
+}
+.member-row {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.member-row > span {
+  flex: 1;
+  min-width: 150px;
+}

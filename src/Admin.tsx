@@ -9,7 +9,9 @@ import {
   RefreshCw,
   X,
   Check,
-  Camera,
+  Pencil,
+  Trash2,
+  RotateCcw,
 } from "lucide-react";
 import { api, supabase, configured } from "./api";
 import {
@@ -21,6 +23,7 @@ import {
   type Team,
 } from "./model";
 import { receiptPdf, rosterPdf } from "./downloads";
+import Scanner from "./Scanner";
 export default function Admin() {
   const [logged, setLogged] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -37,6 +40,12 @@ export default function Admin() {
   const [method, setMethod] = useState("");
   const [attendance, setAttendance] = useState("");
   const [selected, setSelected] = useState<Team | null>(null);
+  const [trash, setTrash] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const editorRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (editing) editorRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [editing]);
   const [code, setCode] = useState("");
   async function load() {
     const result = await api("admin-list");
@@ -97,12 +106,39 @@ export default function Admin() {
       setNotice("Cambios guardados.");
     });
   }
+  async function remove(memberId?: string, restore = false) {
+    if (!selected) return;
+    const label = memberId ? "este participante" : "el equipo completo";
+    if (
+      !restore &&
+      !confirm(
+        "¿Mover " +
+          label +
+          " a la papelera? Podrás restaurarlo desde administración.",
+      )
+    )
+      return;
+    await run(async () => {
+      const result = await api<Team>("admin-remove", {
+        id: selected.id,
+        member: memberId ?? null,
+        restore,
+      });
+      setSelected(memberId || restore ? result : null);
+      setEditing(false);
+      await load();
+      setNotice(
+        restore ? "Registro restaurado." : "Registro movido a la papelera.",
+      );
+    });
+  }
   async function lookup(value: string) {
     await run(async () => {
       if (!navigator.onLine)
         throw new Error("Sin conexión. No se pudo verificar la inscripción.");
       const result = await api<Team>("admin-lookup", { code: value.trim() });
       setSelected(result);
+      setEditing(false);
       setTab("teams");
     });
   }
@@ -233,9 +269,10 @@ export default function Admin() {
         </form>
       </main>
     );
-  const active = teams.filter((t) => t.status === "activa");
+  const active = teams.filter((t) => t.status === "activa" && !t.deleted_at);
   const filtered = teams.filter(
     (t) =>
+      Boolean(t.deleted_at) === trash &&
       (!pay || t.payment === pay) &&
       (!method || t.method === method) &&
       (!attendance ||
@@ -434,6 +471,21 @@ export default function Admin() {
         </div>
       ) : (
         <>
+          <div className="form-actions">
+            <button
+              className={!trash ? "button small" : "button small outline"}
+              onClick={() => setTrash(false)}
+            >
+              Inscripciones
+            </button>
+            <button
+              className={trash ? "button small" : "button small outline"}
+              onClick={() => setTrash(true)}
+            >
+              <Trash2 size={16} /> Papelera (
+              {teams.filter((t) => t.deleted_at).length})
+            </button>
+          </div>
           <div className="filters">
             <label className="search">
               <Search size={17} />
@@ -518,7 +570,11 @@ export default function Admin() {
             {filtered.length === 0 ? (
               <div className="empty">
                 <Users size={35} />
-                <h3>No hay inscripciones para mostrar</h3>
+                <h3>
+                  {trash
+                    ? "La papelera está vacía"
+                    : "No hay inscripciones para mostrar"}
+                </h3>
                 <p>Las nuevas inscripciones aparecerán aquí.</p>
               </div>
             ) : (
@@ -526,7 +582,10 @@ export default function Admin() {
                 <button
                   className="team-row"
                   key={t.id}
-                  onClick={() => setSelected(t)}
+                  onClick={() => {
+                    setSelected(t);
+                    setEditing(false);
+                  }}
                 >
                   <span>
                     <strong>{t.team}</strong>
@@ -593,6 +652,34 @@ export default function Admin() {
                 Ver comprobante de transferencia
               </button>
             )}
+            {selected.deleted_at ? (
+              <div className="notice">
+                Este equipo está en la papelera. No aparece en la nómina ni
+                permite marcar asistencia.
+                <button
+                  className="button small"
+                  disabled={busy}
+                  onClick={() => remove(undefined, true)}
+                >
+                  <RotateCcw size={16} /> Restaurar equipo
+                </button>
+              </div>
+            ) : (
+              <button
+                className="button outline"
+                disabled={busy}
+                onClick={() => setEditing(!editing)}
+              >
+                <Pencil size={16} />{" "}
+                {editing ? "Cerrar edición" : "Editar equipo y participantes"}
+              </button>
+            )}
+            {!selected.deleted_at && selected.members.length !== 4 && (
+              <p className="notice">
+                Equipo incompleto: quedan {selected.members.length} integrantes.
+                Las nuevas inscripciones siguen siendo de cuatro personas.
+              </p>
+            )}
             <h3>Integrantes</h3>
             {selected.members.map((m) => (
               <div className="member-row" key={m.id}>
@@ -608,6 +695,7 @@ export default function Admin() {
                   className="button small outline"
                   disabled={
                     busy ||
+                    Boolean(selected.deleted_at) ||
                     Boolean(m.present_at) ||
                     selected.status !== "activa"
                   }
@@ -621,12 +709,45 @@ export default function Admin() {
                     "Marcar presente"
                   )}
                 </button>
+                {!selected.deleted_at && (
+                  <button
+                    className="text-button danger"
+                    disabled={busy}
+                    onClick={() => remove(m.id)}
+                    aria-label={"Eliminar a " + m.name}
+                  >
+                    <Trash2 size={16} /> Eliminar
+                  </button>
+                )}
               </div>
             ))}
+            {Boolean(selected.removed_members?.length) && (
+              <details>
+                <summary>
+                  Participantes en papelera ({selected.removed_members!.length})
+                </summary>
+                {selected.removed_members!.map((m) => (
+                  <div className="member-row" key={m.id}>
+                    <span>
+                      {m.name} · {m.document}
+                    </span>
+                    <button
+                      className="button small outline"
+                      disabled={busy || Boolean(selected.deleted_at)}
+                      onClick={() => remove(m.id, true)}
+                    >
+                      Restaurar participante
+                    </button>
+                  </div>
+                ))}
+              </details>
+            )}
             <button
               className="button outline"
               disabled={
                 busy ||
+                Boolean(selected.deleted_at) ||
+                selected.members.length === 0 ||
                 selected.status !== "activa" ||
                 selected.members.every((m) => m.present_at)
               }
@@ -641,7 +762,7 @@ export default function Admin() {
             <label>
               Estado del pago
               <select
-                disabled={busy}
+                disabled={busy || Boolean(selected.deleted_at)}
                 value={selected.payment}
                 onChange={(e) => update({ payment: e.target.value })}
               >
@@ -653,6 +774,7 @@ export default function Admin() {
             <label>
               Observación interna
               <textarea
+                disabled={busy || Boolean(selected.deleted_at)}
                 value={selected.notes || ""}
                 onChange={(e) =>
                   setSelected({ ...selected, notes: e.target.value })
@@ -661,92 +783,96 @@ export default function Admin() {
             </label>
             <button
               className="button small"
-              disabled={busy}
+              disabled={busy || Boolean(selected.deleted_at)}
               onClick={() => update({ notes: selected.notes })}
             >
               Guardar observación
             </button>
-            <details>
-              <summary>Corregir datos</summary>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  update({
-                    team: selected.team,
-                    responsible: selected.responsible,
-                    phone: selected.phone,
-                    email: selected.email,
-                    members: selected.members.map((m) => ({
-                      id: m.id,
-                      name: m.name,
-                      document: m.document,
-                    })),
-                  });
-                }}
-              >
-                {(["team", "responsible", "phone", "email"] as const).map(
-                  (k) => (
-                    <label key={k}>
-                      {
+            {!selected.deleted_at && editing && (
+              <section className="team-editor" ref={editorRef}>
+                <h3>Editar equipo y participantes</h3>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    update({
+                      team: selected.team,
+                      responsible: selected.responsible,
+                      phone: selected.phone,
+                      email: selected.email,
+                      members: selected.members.map((m) => ({
+                        id: m.id,
+                        name: m.name,
+                        document: m.document,
+                      })),
+                    });
+                  }}
+                >
+                  {(["team", "responsible", "phone", "email"] as const).map(
+                    (k) => (
+                      <label key={k}>
                         {
-                          team: "Equipo",
-                          responsible: "Responsable",
-                          phone: "Teléfono",
-                          email: "Correo",
-                        }[k]
-                      }
-                      <input
-                        required
-                        value={selected[k]}
-                        onChange={(e) =>
-                          setSelected({ ...selected, [k]: e.target.value })
+                          {
+                            team: "Equipo",
+                            responsible: "Responsable",
+                            phone: "Teléfono",
+                            email: "Correo",
+                          }[k]
                         }
-                      />
-                    </label>
-                  ),
-                )}
-                {selected.members.map((m, i) => (
-                  <fieldset key={m.id}>
-                    <legend>Integrante {i + 1}</legend>
-                    <label>
-                      Nombre
-                      <input
-                        required
-                        minLength={3}
-                        value={m.name}
-                        onChange={(e) =>
-                          setSelected({
-                            ...selected,
-                            members: selected.members.map((x, j) =>
-                              i === j ? { ...x, name: e.target.value } : x,
-                            ),
-                          })
-                        }
-                      />
-                    </label>
-                    <label>
-                      Documento
-                      <input
-                        required
-                        minLength={5}
-                        value={m.document}
-                        onChange={(e) =>
-                          setSelected({
-                            ...selected,
-                            members: selected.members.map((x, j) =>
-                              i === j ? { ...x, document: e.target.value } : x,
-                            ),
-                          })
-                        }
-                      />
-                    </label>
-                  </fieldset>
-                ))}
-                <button className="button" disabled={busy}>
-                  Guardar correcciones
-                </button>
-              </form>
-            </details>
+                        <input
+                          required
+                          value={selected[k]}
+                          onChange={(e) =>
+                            setSelected({ ...selected, [k]: e.target.value })
+                          }
+                        />
+                      </label>
+                    ),
+                  )}
+                  {selected.members.map((m, i) => (
+                    <fieldset key={m.id}>
+                      <legend>Integrante {i + 1}</legend>
+                      <label>
+                        Nombre
+                        <input
+                          required
+                          minLength={3}
+                          value={m.name}
+                          onChange={(e) =>
+                            setSelected({
+                              ...selected,
+                              members: selected.members.map((x, j) =>
+                                i === j ? { ...x, name: e.target.value } : x,
+                              ),
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        Documento
+                        <input
+                          required
+                          minLength={5}
+                          value={m.document}
+                          onChange={(e) =>
+                            setSelected({
+                              ...selected,
+                              members: selected.members.map((x, j) =>
+                                i === j
+                                  ? { ...x, document: e.target.value }
+                                  : x,
+                              ),
+                            })
+                          }
+                        />
+                      </label>
+                    </fieldset>
+                  ))}
+                  <button className="button" disabled={busy}>
+                    Guardar correcciones
+                  </button>
+                </form>
+              </section>
+            )}
             <div className="form-actions">
               <button
                 className="text-button"
@@ -764,7 +890,11 @@ export default function Admin() {
               </button>
               <button
                 className="text-button danger"
-                disabled={busy || selected.status === "cancelada"}
+                disabled={
+                  busy ||
+                  Boolean(selected.deleted_at) ||
+                  selected.status === "cancelada"
+                }
                 onClick={() => {
                   if (
                     confirm(
@@ -776,69 +906,20 @@ export default function Admin() {
               >
                 Cancelar inscripción
               </button>
+              {!selected.deleted_at && (
+                <button
+                  className="text-button danger"
+                  disabled={busy}
+                  onClick={() => remove()}
+                >
+                  <Trash2 size={16} /> Eliminar equipo
+                </button>
+              )}
             </div>
             {alerts}
           </section>
         </div>
       )}
     </main>
-  );
-}
-function Scanner({ onRead }: { onRead: (value: string) => void }) {
-  const [active, setActive] = useState(false);
-  const [error, setError] = useState("");
-  const scannerRef = useRef<any>(null);
-  useEffect(() => {
-    if (!active) return;
-    let disposed = false;
-    let instance: any;
-    async function start() {
-      try {
-        const { Html5Qrcode } = await import("html5-qrcode");
-        if (disposed) return;
-        instance = new Html5Qrcode("qr-reader");
-        scannerRef.current = instance;
-        let read = false;
-        await instance.start(
-          { facingMode: "environment" },
-          { fps: 8, qrbox: { width: 230, height: 230 } },
-          (value: string) => {
-            if (read) return;
-            read = true;
-            setActive(false);
-            onRead(value);
-          },
-          () => {},
-        );
-        if (disposed && instance.isScanning) await instance.stop();
-      } catch (e) {
-        setError(
-          "No pudimos abrir la cámara. Revisá el permiso o ingresá el código manualmente.",
-        );
-        setActive(false);
-      }
-    }
-    start();
-    return () => {
-      disposed = true;
-      if (instance?.isScanning) instance.stop().catch(() => {});
-    };
-  }, [active]);
-  return (
-    <>
-      <div id="qr-reader" />
-      {error && <p role="alert">{error}</p>}
-      <button
-        className="button"
-        type="button"
-        onClick={() => {
-          setError("");
-          setActive(!active);
-        }}
-      >
-        <Camera size={18} />
-        {active ? "Cerrar cámara" : "Abrir cámara"}
-      </button>
-    </>
   );
 }
