@@ -1,4 +1,5 @@
 import { z } from "zod";
+export const TEAM_SIZE = 4;
 export const memberSchema = z.object({
   name: z.string().trim().min(3, "Ingresá nombre y apellido").max(100),
   document: z.string().trim().min(5, "Revisá el documento").max(30),
@@ -10,7 +11,9 @@ export const registrationSchema = z
     phone: z.string().trim().min(7, "Revisá el teléfono").max(30),
     email: z.string().trim().email("Revisá el correo").max(150),
     method: z.enum(["ecos", "fomento", "transferencia"]),
-    members: z.array(memberSchema).min(1).max(4),
+    members: z
+      .array(memberSchema)
+      .length(TEAM_SIZE, "El equipo debe tener exactamente 4 integrantes"),
     accepted: z.literal(true),
     idempotency: z.string().uuid(),
     website: z.string().max(0),
@@ -63,7 +66,7 @@ export const initialSettings: Settings = {
   rules: "",
   privacy: "",
   open: false,
-  min_members: 1,
+  min_members: TEAM_SIZE,
 };
 export type Team = {
   id: string;

@@ -17,12 +17,11 @@ import {
   Menu,
   X,
   LockKeyhole,
-  Plus,
-  Trash2,
 } from "lucide-react";
 import { api, configured } from "./api";
 import {
   initialSettings,
+  TEAM_SIZE,
   methods,
   money,
   registrationSchema,
@@ -31,6 +30,7 @@ import {
   type Team,
 } from "./model";
 import { receiptPdf, receiptLink } from "./downloads";
+import { BrandLogo } from "./BrandLogo";
 const Admin = lazy(() => import("./Admin"));
 const newDraft = (): Draft => ({
   team: "",
@@ -38,7 +38,10 @@ const newDraft = (): Draft => ({
   phone: "",
   email: "",
   method: "ecos",
-  members: [{ name: "", document: "" }],
+  members: Array.from({ length: TEAM_SIZE }, () => ({
+    name: "",
+    document: "",
+  })),
   accepted: false,
   idempotency: crypto.randomUUID(),
   website: "",
@@ -157,7 +160,7 @@ export default function App() {
                   Inscribir mi equipo <ArrowUpRight size={19} />
                 </a>
                 <span>
-                  Hasta 4 personas.
+                  Equipos de 4 personas.
                   <br />
                   <strong>Una experiencia para todos.</strong>
                 </span>
@@ -172,7 +175,8 @@ export default function App() {
                 </span>
                 <i />
                 <span>
-                  POR <b>By Manky</b>
+                  PRODUCE{" "}
+                  <BrandLogo brand="manky" className="hero-producer-logo" />
                 </span>
               </div>
             </div>
@@ -264,6 +268,16 @@ export default function App() {
             <span>VIVÍ EMPRENDE CAMINO</span>
             <Sparkles size={17} />
           </div>
+          <section className="event-brands" aria-label="Feria y producción">
+            <div className="event-brand">
+              <span>En el marco de la feria</span>
+              <BrandLogo brand="emprende" />
+            </div>
+            <div className="event-brand">
+              <span>Producido por</span>
+              <BrandLogo brand="manky" />
+            </div>
+          </section>
           <section className="section" id="experiencia">
             <div className="section-heading">
               <div>
@@ -356,7 +370,7 @@ export default function App() {
               <div className="price">
                 $1200<span>UYU / equipo</span>
               </div>
-              <p>De {settings.min_members} a 4 personas · Trail de 5 km</p>
+              <p>4 personas por equipo · Trail de 5 km</p>
               <hr />
               <p>
                 <Check size={18} /> Medalla finisher para cada integrante
@@ -384,6 +398,7 @@ export default function App() {
               <p>
                 <strong>En persona</strong>Ecos Regionales o Sociedad de Fomento
                 Rural de Flores.
+                <BrandLogo brand="fomento" className="payment-logo" />
               </p>
               <p>
                 <strong>Transferencia BROU · Cuenta corriente</strong>001400338
@@ -414,11 +429,16 @@ export default function App() {
           </span>
         </a>
         <p>5 km. Muchas experiencias en un solo circuito.</p>
-        <span>
-          Una experiencia de <strong>By Manky</strong>
-          <br />
-          En el marco de Emprende Camino
-        </span>
+        <div className="footer-brands">
+          <div>
+            <span>Producido por</span>
+            <BrandLogo brand="manky" />
+          </div>
+          <div>
+            <span>En el marco de</span>
+            <BrandLogo brand="emprende" />
+          </div>
+        </div>
       </footer>
     </>
   );
@@ -442,8 +462,8 @@ function Registration({ settings }: { settings: Settings }) {
     if (step < 2) {
       const form = e.currentTarget as HTMLFormElement;
       if (!form.reportValidity()) return;
-      if (step === 1 && d.members.length < settings.min_members) {
-        setError(`Agregá al menos ${settings.min_members} integrantes.`);
+      if (step === 1 && d.members.length !== TEAM_SIZE) {
+        setError("El equipo debe tener exactamente 4 integrantes.");
         return;
       }
       setError("");
@@ -538,7 +558,7 @@ function Registration({ settings }: { settings: Settings }) {
       </a>
       <div className="eyebrow green">TU PRÓXIMA HISTORIA EMPIEZA ACÁ</div>
       <h1>Sumá tu equipo.</h1>
-      <p>Hasta 4 personas. Un circuito. Muchas experiencias.</p>
+      <p>4 personas por equipo. Un circuito. Muchas experiencias.</p>
       <div className="steps">
         {["Tu equipo", "Integrantes", "Confirmación"].map((s, i) => (
           <span
@@ -631,7 +651,10 @@ function Registration({ settings }: { settings: Settings }) {
         {step === 1 && (
           <>
             <h2>El camino se comparte</h2>
-            <p>Agregá de {settings.min_members} a 4 integrantes.</p>
+            <p>
+              Completá los datos de las 4 personas del equipo. Todos los
+              integrantes son obligatorios.
+            </p>
             {d.members.map((m, i) => (
               <fieldset key={i}>
                 <legend>Integrante {i + 1}</legend>
@@ -687,33 +710,8 @@ function Registration({ settings }: { settings: Settings }) {
                     />
                   </label>
                 </div>
-                {d.members.length > settings.min_members && (
-                  <button
-                    type="button"
-                    className="text-button danger"
-                    onClick={() =>
-                      change(
-                        "members",
-                        d.members.filter((_, j) => j !== i),
-                      )
-                    }
-                  >
-                    <Trash2 size={14} /> Quitar integrante
-                  </button>
-                )}
               </fieldset>
             ))}
-            {d.members.length < 4 && (
-              <button
-                className="button outline"
-                type="button"
-                onClick={() =>
-                  change("members", [...d.members, { name: "", document: "" }])
-                }
-              >
-                <Plus size={16} /> Agregar integrante
-              </button>
-            )}
           </>
         )}
         {step === 2 && (

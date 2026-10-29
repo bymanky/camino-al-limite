@@ -363,20 +363,8 @@ export default function Admin() {
               </label>
             ))}
             <label>
-              Mínimo de integrantes
-              <select
-                value={settings.min_members}
-                onChange={(e) =>
-                  setSettings({
-                    ...settings,
-                    min_members: Number(e.target.value),
-                  })
-                }
-              >
-                {[1, 2, 3, 4].map((n) => (
-                  <option key={n}>{n}</option>
-                ))}
-              </select>
+              Integrantes por equipo
+              <input value="4 personas (obligatorio)" readOnly />
             </label>
           </div>
           <label>

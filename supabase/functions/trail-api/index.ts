@@ -22,7 +22,7 @@ const registration = z
     phone: z.string().trim().min(7).max(30),
     email: z.string().trim().email().max(150),
     method: z.enum(["ecos", "fomento", "transferencia"]),
-    members: z.array(member).min(1).max(4),
+    members: z.array(member).length(4),
     accepted: z.literal(true),
     idempotency: z.string().uuid(),
     website: z.string().max(0),
@@ -45,7 +45,7 @@ const settingsSchema = z.object({
   rules: z.string().max(40000),
   privacy: z.string().max(40000),
   open: z.boolean(),
-  min_members: z.number().int().min(1).max(4),
+  min_members: z.literal(4),
 });
 const patchSchema = z
   .object({
@@ -437,7 +437,7 @@ Deno.serve(async (req) => {
       return reply(
         {
           error:
-            "Revisá los datos ingresados. El equipo debe tener de 1 a 4 integrantes y documentos sin repetir.",
+            "Revisá los datos ingresados. El equipo debe tener exactamente 4 integrantes y documentos sin repetir.",
         },
         400,
       );

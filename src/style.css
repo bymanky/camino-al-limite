@@ -1,4 +1,111 @@
 @import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap");
+
+.brand-logo {
+  display: block;
+  max-width: 100%;
+  object-fit: contain;
+}
+.event-brands {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(35px, 8vw, 120px);
+  padding: 38px 7%;
+  border-bottom: 1px solid var(--line);
+  background: #fffefb;
+}
+.event-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 290px;
+}
+.event-brand > span,
+.footer-brands span {
+  font-size: 10px;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: #68765d;
+}
+.event-brand .brand-logo {
+  width: 100%;
+  height: 130px;
+}
+.event-brand .brand-logo-manky {
+  width: 155px;
+  height: 155px;
+}
+.hero-footer .hero-producer-logo {
+  width: 66px;
+  height: 55px;
+}
+.payment-section .payment-logo {
+  width: 180px;
+  height: 100px;
+  margin-top: 14px;
+}
+.footer-brands {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+}
+.footer-brands > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.footer-brands .brand-logo {
+  width: 135px;
+  height: 68px;
+}
+.footer-brands .brand-logo-manky {
+  width: 70px;
+  height: 70px;
+}
+@media (max-width: 700px) {
+  .event-brands {
+    gap: 25px;
+    padding: 28px 7%;
+  }
+  .event-brand {
+    width: 50%;
+  }
+  .event-brand > span {
+    font-size: 8px;
+    letter-spacing: 0.5px;
+    text-align: center;
+  }
+  .event-brand .brand-logo {
+    height: 90px;
+  }
+  .event-brand .brand-logo-manky {
+    width: 110px;
+    height: 110px;
+  }
+  .footer-brands {
+    gap: 16px;
+    margin-left: auto;
+  }
+  .footer-brands span {
+    font-size: 7px;
+    letter-spacing: 0.5px;
+  }
+  .footer-brands .brand-logo {
+    width: 110px;
+    height: 55px;
+  }
+  .footer-brands .brand-logo-manky {
+    width: 55px;
+    height: 55px;
+  }
+  .hero-footer .hero-producer-logo {
+    width: 54px;
+    height: 42px;
+  }
+}
 :root {
   font-family: "DM Sans", sans-serif;
   color: #183b30;

@@ -12,7 +12,10 @@ const p = {
   phone: "099123456",
   email: "ana@example.com",
   method: "ecos",
-  members: [{ name: "Ana Pérez", document: "12345678" }],
+  members: Array.from({ length: 4 }, (_, i) => ({
+    name: `Persona ${i}`,
+    document: `1234567${i}`,
+  })),
   accepted: true,
   idempotency: "90e3c52a-7ce3-4be1-894c-1c4e423777e2",
 };
@@ -63,7 +66,7 @@ describe.sequential("Base de datos y permisos", () => {
       [teamId],
     );
     expect(r.rows[0].data.amount).toBe(1200);
-    expect(r.rows[0].data.members).toHaveLength(1);
+    expect(r.rows[0].data.members).toHaveLength(4);
     memberId = r.rows[0].data.members[0].id;
   });
   it("reintentar no duplica una inscripción", async () => {
@@ -105,13 +108,65 @@ describe.sequential("Base de datos y permisos", () => {
       ).rows[0].n,
     ).toBe(1);
   });
+  it.each([0, 1, 2, 3])(
+    "la base rechaza equipos de %i sin dejar registros parciales",
+    async (n) => {
+      await expect(
+        register(
+          {
+            ...p,
+            idempotency: crypto.randomUUID(),
+            members: p.members.slice(0, n),
+          },
+          `r-short-${n}`,
+          `q-short-${n}`,
+          `h-short-${n}`,
+        ),
+      ).rejects.toThrow("Cantidad de integrantes inválida");
+      expect(
+        (
+          await db.query<{ n: number }>(
+            "select count(*)::int n from public.trail_teams",
+          )
+        ).rows[0].n,
+      ).toBe(1);
+    },
+  );
+  it("la configuración no permite reducir el equipo a una persona", async () => {
+    await db.query("select public.trail_settings_update($1,$2)", [
+      admin,
+      {
+        date: "",
+        time: "",
+        location: "",
+        deadline: "",
+        contact: "",
+        rules: "Prueba",
+        privacy: "Prueba",
+        open: true,
+        min_members: 1,
+      },
+    ]);
+    expect(
+      (
+        await db.query<{ min_members: number }>(
+          "select min_members from public.trail_settings",
+        )
+      ).rows[0].min_members,
+    ).toBe(4);
+  });
   it("revierte todo si un integrante tiene datos inválidos", async () => {
     await expect(
       register(
         {
           ...p,
           idempotency: crypto.randomUUID(),
-          members: [p.members[0], { name: "X", document: "00000" }],
+          members: [
+            p.members[0],
+            { name: "X", document: "00000" },
+            p.members[2],
+            p.members[3],
+          ],
         },
         "r3",
         "q3",

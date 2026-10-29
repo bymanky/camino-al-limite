@@ -7,7 +7,7 @@ create table public.trail_settings (
  id int primary key default 1 check(id=1), date text not null default '', time text not null default '',
  location text not null default '', deadline text not null default '', contact text not null default '',
  rules text not null default '', privacy text not null default '', open boolean not null default false,
- min_members int not null default 1 check(min_members between 1 and 4)
+ min_members int not null default 4 check(min_members=4)
 );
 insert into public.trail_settings(id) values(1);
 create table trail_private.admins(user_id uuid primary key references auth.users(id) on delete cascade, username text unique not null check(username=lower(username) and username ~ '^[a-z0-9_.-]{3,40}$'), active boolean not null default true);
@@ -70,7 +70,7 @@ declare s public.trail_settings; t uuid; prior trail_private.tokens; m jsonb; i 
  select * into s from public.trail_settings where id=1 for share;
  if not s.open or s.rules='' or s.privacy='' then raise exception 'Las inscripciones están cerradas';end if;
  if s.deadline<>'' and (s.deadline||'-03:00')::timestamptz<now() then raise exception 'El plazo de inscripción finalizó';end if;
- if jsonb_array_length(p->'members') not between s.min_members and 4 then raise exception 'Cantidad de integrantes inválida';end if;
+ if coalesce(jsonb_array_length(p->'members'),0)<>4 then raise exception 'Cantidad de integrantes inválida';end if;
  if p->>'accepted'<>'true' then raise exception 'Debés aceptar el reglamento';end if;
  insert into public.trail_teams(code,team,responsible,phone,email,method,accepted_rules,accepted_privacy)
  values('CAL-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,16)),p->>'team',p->>'responsible',p->>'phone',p->>'email',p->>'method',s.rules,s.privacy) returning id into t;
@@ -113,7 +113,7 @@ create function public.trail_settings_update(p_admin uuid,p jsonb) returns jsonb
 declare s public.trail_settings;begin
  if not public.trail_is_admin(p_admin) then raise exception 'Acceso denegado';end if;
  if (p->>'open')::boolean and (coalesce(p->>'rules','')='' or coalesce(p->>'privacy','')='') then raise exception 'Publicá el reglamento y el aviso de privacidad antes de abrir';end if;
- update public.trail_settings set date=p->>'date',time=p->>'time',location=p->>'location',deadline=p->>'deadline',contact=p->>'contact',rules=p->>'rules',privacy=p->>'privacy',open=(p->>'open')::boolean,min_members=(p->>'min_members')::int where id=1 returning * into s;
+ update public.trail_settings set date=p->>'date',time=p->>'time',location=p->>'location',deadline=p->>'deadline',contact=p->>'contact',rules=p->>'rules',privacy=p->>'privacy',open=(p->>'open')::boolean,min_members=4 where id=1 returning * into s;
  insert into public.trail_audit(admin_id,action,details) values(p_admin,'configuracion',jsonb_build_object('abiertas',s.open));return to_jsonb(s);
 end $$;
 -- Los RPC también están bloqueados para visitantes y usuarios comunes.

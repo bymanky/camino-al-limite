@@ -1,6 +1,6 @@
 # Camino al Limite
 
-Inscripciones del trail de 5 km en el marco de **Emprende Camino**, producido por **By Manky**. React + TypeScript + Vite, Supabase y GitHub Pages. Precio fijo: **$1200 UYU por equipo**, de uno a cuatro integrantes (mínimo configurable).
+Inscripciones del trail de 5 km en el marco de **Emprende Camino**, producido por **By Manky**. React + TypeScript + Vite, Supabase y GitHub Pages. Precio fijo: **$1200 UYU por equipo**, de exactamente cuatro integrantes.
 
 ## Estado de entrega
 
@@ -103,17 +103,17 @@ El sitio usa rutas con `#` y recursos relativos para que funcione en la subcarpe
 
 ## 5. Abrir el evento
 
-Ingresar al panel y completar fecha, hora, largada, contacto, cierre de inscripciones, reglamento y aviso de privacidad. Si no hay fecha o lugar se muestra «Próximamente». La fecha límite usa la hora de Uruguay (UTC-03:00). Publicar los textos aprobados por la organización y luego habilitar «Inscripciones abiertas».
+Ingresar al panel y completar fecha, hora, largada, contacto, cierre de inscripciones, reglamento y aviso de privacidad. El tamaño del equipo es fijo: cuatro personas. Si no hay fecha o lugar se muestra «Próximamente». La fecha límite usa la hora de Uruguay (UTC-03:00). Publicar los textos aprobados por la organización y luego habilitar «Inscripciones abiertas».
 
 No se inventan reglamentos, consentimientos ni datos del evento. Las versiones del reglamento y aviso aceptadas se guardan junto a cada inscripción. La web no envía el PDF por correo: lo entrega para descargar y mediante enlace privado.
 
 ## Validación
 
-21 pruebas automáticas incluidas: reglas de equipos, duplicados, consentimiento, CSV con ceros iniciales y protección contra fórmulas, precio validado en base, transacciones completas, reintentos sin duplicados, permisos para visitantes y usuarios comunes, autorización administrativa, auditoría, asistencia idempotente, cancelación, PDF con cuatro integrantes y QR, y paginación de la nómina. La base SQL se verifica con Postgres embebido (PGlite), con tablas de Auth y Storage de prueba; no sustituye la comprobación de los servicios reales de Supabase. También se comprobó el formulario en un navegador con pantalla de celular y se inspeccionó visualmente un PDF generado con datos ficticios.
+31 pruebas automáticas incluidas: reglas de equipos de exactamente cuatro personas, duplicados, consentimiento, CSV con ceros iniciales y protección contra fórmulas, precio validado en base, transacciones completas, reintentos sin duplicados, permisos para visitantes y usuarios comunes, autorización administrativa, auditoría, asistencia idempotente, cancelación, PDF con cuatro integrantes y QR, y paginación de la nómina. La base SQL se verifica con Postgres embebido (PGlite), con tablas de Auth y Storage de prueba; no sustituye la comprobación de los servicios reales de Supabase. También se comprobó el formulario en un navegador con pantalla de celular y se inspeccionó visualmente un PDF generado con datos ficticios.
 
 Antes de admitir participantes reales, verificar en el proyecto final:
 
-- Crear una inscripción con uno y otra con cuatro integrantes; intentar cinco.
+- Crear una inscripción con cuatro integrantes; comprobar que se rechazan equipos de uno, dos, tres o cinco.
 - Descargar el PDF, volver a abrir el enlace privado y escanear el QR desde otro celular.
 - Adjuntar una transferencia y revisar que solo administradores puedan acceder al archivo.
 - Confirmar un pago, corregir una inscripción y revisar `trail_audit`.

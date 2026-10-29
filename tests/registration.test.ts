@@ -6,32 +6,23 @@ const draft = {
   phone: "099123456",
   email: "ana@example.com",
   method: "ecos",
-  members: [{ name: "Ana Pérez", document: "12345678" }],
+  members: Array.from({ length: 4 }, (_, i) => ({
+    name: `Persona ${i}`,
+    document: `1234567${i}`,
+  })),
   accepted: true,
   idempotency: "90e3c52a-7ce3-4be1-894c-1c4e423777e2",
   website: "",
 };
 describe("Inscripción", () => {
-  it("acepta de uno a cuatro integrantes", () => {
-    for (let n = 1; n <= 4; n++)
-      expect(
-        registrationSchema.safeParse({
-          ...draft,
-          members: Array.from({ length: n }, (_, i) => ({
-            name: `Persona ${i}`,
-            document: `1234567${i}`,
-          })),
-        }).success,
-      ).toBe(true);
+  it("acepta exactamente cuatro integrantes", () => {
+    expect(registrationSchema.safeParse(draft).success).toBe(true);
   });
-  it("rechaza equipos vacíos y de cinco personas", () => {
-    expect(
-      registrationSchema.safeParse({ ...draft, members: [] }).success,
-    ).toBe(false);
+  it.each([0, 1, 2, 3, 5])("rechaza equipos de %i integrantes", (n) => {
     expect(
       registrationSchema.safeParse({
         ...draft,
-        members: Array.from({ length: 5 }, (_, i) => ({
+        members: Array.from({ length: n }, (_, i) => ({
           name: `Persona ${i}`,
           document: `1234567${i}`,
         })),
