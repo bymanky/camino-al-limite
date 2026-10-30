@@ -451,7 +451,7 @@ Deno.serve(async (req) => {
             .regex(/^[a-z0-9_.-]{3,40}$/),
           email: z.string().trim().toLowerCase().email().max(150),
           role: staffRole,
-          mode: z.enum(["invite", "existing"]),
+          mode: z.enum(["link", "invite", "existing"]),
         })
         .safeParse(b);
       if (!parsed.success)
@@ -471,10 +471,28 @@ Deno.serve(async (req) => {
         throw new SafeError(
           "No existe una cuenta con ese correo. Elegí invitar un usuario nuevo.",
         );
-      if (input.mode === "invite" && user)
+      if (input.mode !== "existing" && user)
         throw new SafeError(
           "Ese correo ya tiene una cuenta. Elegí vincular una cuenta existente.",
         );
+      let invitation: string | undefined;
+      if (input.mode === "link") {
+        const { data, error } = await root.auth.admin.generateLink({
+          type: "invite",
+          email: input.email,
+          options: {
+            redirectTo:
+              "https://bymanky.github.io/camino-al-limite/?recovery=1#/admin",
+          },
+        });
+        if (error || !data.user || !data.properties?.action_link)
+          throw new SafeError(
+            "No se pudo generar el enlace de invitación. Revisá el correo y reintentá.",
+            503,
+          );
+        user = data.user;
+        invitation = data.properties.action_link;
+      }
       if (input.mode === "invite") {
         const { data, error } = await root.auth.admin.inviteUserByEmail(
           input.email,
@@ -506,10 +524,13 @@ Deno.serve(async (req) => {
       }
       return reply({
         ok: true,
+        invitation,
         message:
-          input.mode === "invite"
-            ? "Usuario creado. Recibirá una invitación para definir su contraseña."
-            : "Cuenta vinculada. Ingresará con su contraseña actual.",
+          input.mode === "link"
+            ? "Usuario creado. Copiá su enlace privado de invitación antes de salir de esta pantalla."
+            : input.mode === "invite"
+              ? "Usuario creado. Recibirá una invitación para definir su contraseña."
+              : "Cuenta vinculada. Ingresará con su contraseña actual.",
       });
     }
 

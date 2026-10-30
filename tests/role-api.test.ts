@@ -12,6 +12,7 @@ const mock = vi.hoisted(() => ({
   active: true,
   rpc: vi.fn(),
   invites: vi.fn(),
+  links: vi.fn(),
   authUsers: [] as any[],
 }));
 const uid = "4d240039-5059-4c95-afd5-685b953f88c0",
@@ -31,6 +32,7 @@ vi.mock("@supabase/supabase-js", () => ({
           error: null,
         }),
         inviteUserByEmail: mock.invites,
+        generateLink: mock.links,
       },
     },
     rpc: mock.rpc,
@@ -54,6 +56,7 @@ beforeEach(() => {
   mock.active = true;
   mock.authUsers = [];
   mock.invites.mockReset();
+  mock.links.mockReset();
   mock.rpc.mockReset();
   mock.rpc.mockImplementation(async (name: string) => ({
     error: null,
@@ -206,4 +209,43 @@ it("vincula una cuenta existente sin cambiar su contraseña ni enviar invitació
   });
   expect(r.status).toBe(200);
   expect(mock.invites).not.toHaveBeenCalled();
+});
+it("crea un enlace privado sin enviar correo ni usar contraseñas", async () => {
+  mock.role = "superadministrador";
+  mock.permissions = ["users"];
+  mock.links.mockResolvedValue({
+    data: {
+      user: { id: teamId, email: "nuevo@example.com" },
+      properties: { action_link: "https://example.com/invitacion-ficticia" },
+    },
+    error: null,
+  });
+  const r = await call("admin-user-create", {
+    username: "nuevo",
+    email: "nuevo@example.com",
+    role: "consulta",
+    mode: "link",
+  });
+  expect(r.status).toBe(200);
+  expect(r.body.invitation).toBe("https://example.com/invitacion-ficticia");
+  expect(mock.invites).not.toHaveBeenCalled();
+  expect(mock.links).toHaveBeenCalledWith({
+    type: "invite",
+    email: "nuevo@example.com",
+    options: {
+      redirectTo:
+        "https://bymanky.github.io/camino-al-limite/?recovery=1#/admin",
+    },
+  });
+});
+it("un rol inferior no puede obtener enlaces de invitación", async () => {
+  const r = await call("admin-user-create", {
+    username: "nuevo",
+    email: "nuevo@example.com",
+    role: "superadministrador",
+    mode: "link",
+  });
+  expect(r.status).toBe(403);
+  expect(mock.links).not.toHaveBeenCalled();
+  expect(r.body).not.toHaveProperty("invitation");
 });

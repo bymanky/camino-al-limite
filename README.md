@@ -109,7 +109,7 @@ No se inventan reglamentos, consentimientos ni datos del evento. Las versiones d
 
 ## Validación
 
-76 pruebas automáticas incluidas: reglas de equipos de exactamente cuatro personas, duplicados, consentimiento, CSV con ceros iniciales y protección contra fórmulas, precio validado en base, transacciones completas, reintentos sin duplicados, permisos para visitantes y usuarios comunes, autorización administrativa, auditoría, asistencia idempotente, cancelación, PDF con cuatro integrantes y QR, y paginación de la nómina. La base SQL se verifica con Postgres embebido (PGlite), con tablas de Auth y Storage de prueba; no sustituye la comprobación de los servicios reales de Supabase. También se comprobó el formulario en un navegador con pantalla de celular y se inspeccionó visualmente un PDF generado con datos ficticios.
+78 pruebas automáticas incluidas: reglas de equipos de exactamente cuatro personas, duplicados, consentimiento, CSV con ceros iniciales y protección contra fórmulas, precio validado en base, transacciones completas, reintentos sin duplicados, permisos para visitantes y usuarios comunes, autorización administrativa, auditoría, asistencia idempotente, cancelación, PDF con cuatro integrantes y QR, y paginación de la nómina. La base SQL se verifica con Postgres embebido (PGlite), con tablas de Auth y Storage de prueba; no sustituye la comprobación de los servicios reales de Supabase. También se comprobó el formulario en un navegador con pantalla de celular y se inspeccionó visualmente un PDF generado con datos ficticios.
 
 Antes de admitir participantes reales, verificar en el proyecto final:
 
@@ -150,3 +150,5 @@ El superadministrador gestiona las cuentas desde Administración → Usuarios y 
 - Consulta: consulta y descarga de nómina; sin modificaciones.
 
 Los permisos se consultan en la base privada en cada petición y las escrituras se comprueban también en SQL. Suspender un acceso impide la siguiente operación aunque el JWT siga vigente. No se usa user_metadata para autorizar. El superadministrador no puede cambiar su propio rol ni suspenderse. La migración inicial promueve únicamente la cuenta activa bymanky; los demás administradores existentes conservan el rol Administrador.
+
+La opción predeterminada para cuentas nuevas genera un enlace privado de invitación sin enviar correo. El superadministrador debe copiarlo y compartirlo únicamente con esa persona antes de salir del panel. El enlace solo se conserva en memoria. El envío automático por correo es opcional y requiere un SMTP propio para direcciones externas, según las restricciones del servicio predeterminado de Supabase.

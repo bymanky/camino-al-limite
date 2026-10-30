@@ -19,7 +19,11 @@ export default function StaffManagement({
   const [username, setUsername] = useState(""),
     [email, setEmail] = useState(""),
     [role, setRole] = useState<StaffRole>("consulta"),
-    [mode, setMode] = useState("invite");
+    [mode, setMode] = useState("link");
+  const [invitation, setInvitation] = useState<{
+    url: string;
+    email: string;
+  } | null>(null);
   async function load() {
     const result = await api<{ users: StaffUser[] }>("admin-users");
     setUsers(result.users);
@@ -46,7 +50,7 @@ export default function StaffManagement({
     e.preventDefault();
     if (
       !confirm(
-        `¿${mode === "invite" ? "Invitar" : "Vincular"} a ${email} con el rol ${staffRoles[role].name}? Tendrá acceso según los permisos de ese rol.`,
+        `¿${mode !== "existing" ? "Invitar" : "Vincular"} a ${email} con el rol ${staffRoles[role].name}? Tendrá acceso según los permisos de ese rol.`,
       )
     )
       return;
@@ -58,6 +62,9 @@ export default function StaffManagement({
         mode,
       });
       setNotice(result.message);
+      setInvitation(
+        result.invitation ? { url: result.invitation, email } : null,
+      );
       setUsername("");
       setEmail("");
     });
@@ -77,6 +84,51 @@ export default function StaffManagement({
       {notice && (
         <div role="status" className="notice">
           {notice}
+        </div>
+      )}
+      {invitation && (
+        <div className="notice">
+          <strong>Invitación para {invitation.email}</strong>
+          <p>
+            Enlace privado de un solo uso. Compartilo únicamente con esta
+            persona para que defina su contraseña. Guardalo antes de salir: no
+            se conserva en este panel.
+          </p>
+          <label>
+            Enlace privado de invitación
+            <input
+              readOnly
+              value={invitation.url}
+              onFocus={(e) => e.target.select()}
+            />
+          </label>
+          <button
+            type="button"
+            className="button small"
+            onClick={() =>
+              navigator.clipboard
+                .writeText(invitation.url)
+                .then(() =>
+                  setNotice(
+                    "Enlace copiado. Compartilo únicamente con la persona invitada.",
+                  ),
+                )
+                .catch(() =>
+                  setError(
+                    "No se pudo copiar. Seleccioná y copiá el enlace manualmente.",
+                  ),
+                )
+            }
+          >
+            Copiar enlace
+          </button>
+          <button
+            type="button"
+            className="text-button"
+            onClick={() => setInvitation(null)}
+          >
+            Ocultar enlace
+          </button>
         </div>
       )}
       <details>
@@ -100,6 +152,9 @@ export default function StaffManagement({
               disabled={busy}
               onChange={(e) => setMode(e.target.value)}
             >
+              <option value="link">
+                Crear usuario y obtener enlace privado
+              </option>
               <option value="invite">Invitar usuario nuevo por correo</option>
               <option value="existing">
                 Vincular cuenta existente por correo
@@ -153,16 +208,20 @@ export default function StaffManagement({
         </div>
         <p>{staffRoles[role].description}</p>
         <p className="muted">
-          {mode === "invite"
-            ? "La persona recibirá un enlace para elegir su contraseña. El envío depende del servicio de correo de Supabase."
-            : "La persona conservará su contraseña actual. Solo se agregará acceso a Camino al Limite."}
+          {mode === "link"
+            ? "Se creará un enlace privado para compartir directamente con la persona. No depende del servicio de correo."
+            : mode === "invite"
+              ? "La persona recibirá un enlace para elegir su contraseña. El envío depende del servicio de correo de Supabase."
+              : "La persona conservará su contraseña actual. Solo se agregará acceso a Camino al Limite."}
         </p>
         <button className="button" disabled={busy}>
           {busy
             ? "Procesando…"
-            : mode === "invite"
-              ? "Crear y enviar invitación"
-              : "Vincular cuenta"}
+            : mode === "link"
+              ? "Crear y generar enlace"
+              : mode === "invite"
+                ? "Crear y enviar invitación"
+                : "Vincular cuenta"}
         </button>
       </form>
       <h3>Equipo de administración</h3>
