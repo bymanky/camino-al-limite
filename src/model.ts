@@ -89,7 +89,7 @@ export type Team = {
 };
 export const methods: Record<string, string> = {
   ecos: "Presencial · Ecos Regionales",
-  fomento: "Presencial · Sociedad de Fomento Rural de Flores",
+  fomento: "Presencial · Sociedad de Fomento de Flores",
   transferencia: "Transferencia BROU",
 };
 export const money = (n: number) =>

@@ -1,6 +1,6 @@
 # Camino al Limite
 
-Inscripciones del trail de 5 km en el marco de **Emprende Camino**, producido por **By Manky**. React + TypeScript + Vite, Supabase y GitHub Pages. Precio fijo: **$1200 UYU por equipo**, de exactamente cuatro integrantes.
+Inscripciones del trail de 5 km en el marco de **Emprende Camino**, producido por **By Manky**. React + TypeScript + Vite, Supabase y GitHub Pages. Precio: **$300 UYU por persona**, de exactamente cuatro integrantes (**$1200 UYU por equipo**). Cupos limitados. Patrocina: Sociedad de Fomento de Flores.
 
 ## Estado de entrega
 
@@ -10,7 +10,7 @@ El repositorio pertenece a `bymanky/camino-al-limite`. La dirección de publicac
 
 - Sitio adaptable a celular con inscripción en tres pasos.
 - Equipo e integrantes guardados en una sola transacción, importe validado en servidor e intentos idempotentes.
-- Pagos presenciales en Ecos Regionales o Sociedad de Fomento Rural de Flores; transferencia BROU cuenta corriente 001400338 - 00004, Ana Prat.
+- Pagos presenciales en Ecos Regionales o Sociedad de Fomento de Flores; transferencia BROU cuenta corriente 001400338 - 00004, Ana Prat.
 - Adjuntos privados de hasta 5 MB en PDF/JPG/PNG. Formato validado por cabecera del archivo y tipo declarado.
 - Comprobante PDF con QR por equipo; enlace privado para volver a descargarlo. Los QR no contienen datos personales.
 - Panel de administración con nombre de usuario y contraseña, recuperación de acceso, filtros, edición de equipos y participantes, papelera recuperable, confirmación de pagos y cancelación.
@@ -109,7 +109,7 @@ No se inventan reglamentos, consentimientos ni datos del evento. Las versiones d
 
 ## Validación
 
-46 pruebas automáticas incluidas: reglas de equipos de exactamente cuatro personas, duplicados, consentimiento, CSV con ceros iniciales y protección contra fórmulas, precio validado en base, transacciones completas, reintentos sin duplicados, permisos para visitantes y usuarios comunes, autorización administrativa, auditoría, asistencia idempotente, cancelación, PDF con cuatro integrantes y QR, y paginación de la nómina. La base SQL se verifica con Postgres embebido (PGlite), con tablas de Auth y Storage de prueba; no sustituye la comprobación de los servicios reales de Supabase. También se comprobó el formulario en un navegador con pantalla de celular y se inspeccionó visualmente un PDF generado con datos ficticios.
+47 pruebas automáticas incluidas: reglas de equipos de exactamente cuatro personas, duplicados, consentimiento, CSV con ceros iniciales y protección contra fórmulas, precio validado en base, transacciones completas, reintentos sin duplicados, permisos para visitantes y usuarios comunes, autorización administrativa, auditoría, asistencia idempotente, cancelación, PDF con cuatro integrantes y QR, y paginación de la nómina. La base SQL se verifica con Postgres embebido (PGlite), con tablas de Auth y Storage de prueba; no sustituye la comprobación de los servicios reales de Supabase. También se comprobó el formulario en un navegador con pantalla de celular y se inspeccionó visualmente un PDF generado con datos ficticios.
 
 Antes de admitir participantes reales, verificar en el proyecto final:
 

@@ -3,7 +3,7 @@ export const brandLogos = {
   emprende: { file: "emprende-camino.png", alt: "Emprende Camino" },
   fomento: {
     file: "sociedad-fomento-flores.png",
-    alt: "Sociedad de Fomento Rural de Flores",
+    alt: "Sociedad de Fomento de Flores",
   },
 } as const;
 
