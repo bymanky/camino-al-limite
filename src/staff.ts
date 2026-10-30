@@ -32,7 +32,7 @@ export type StaffProfile = {
 export type StaffUser = {
   id: string;
   username: string;
-  email: string;
+  local: boolean;
   role: StaffRole;
   active: boolean;
   created_at: string;

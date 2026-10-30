@@ -17,13 +17,9 @@ export default function StaffManagement({
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const [username, setUsername] = useState(""),
-    [email, setEmail] = useState(""),
-    [role, setRole] = useState<StaffRole>("consulta"),
-    [mode, setMode] = useState("link");
-  const [invitation, setInvitation] = useState<{
-    url: string;
-    email: string;
-  } | null>(null);
+    [password, setPassword] = useState(""),
+    [confirmation, setConfirmation] = useState(""),
+    [role, setRole] = useState<StaffRole>("consulta");
   async function load() {
     const result = await api<{ users: StaffUser[] }>("admin-users");
     setUsers(result.users);
@@ -48,33 +44,46 @@ export default function StaffManagement({
   }
   async function create(e: FormEvent) {
     e.preventDefault();
+    setError("");
+    if (password !== confirmation) {
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
+    if (new TextEncoder().encode(password).length > 72) {
+      setError("La contraseña es demasiado larga. Acortala y reintentá.");
+      return;
+    }
     if (
       !confirm(
-        `¿${mode !== "existing" ? "Invitar" : "Vincular"} a ${email} con el rol ${staffRoles[role].name}? Tendrá acceso según los permisos de ese rol.`,
+        "¿Crear el usuario " +
+          username +
+          " con el rol " +
+          staffRoles[role].name +
+          "?",
       )
     )
       return;
-    await run(async () => {
-      const result = await api("admin-user-create", {
-        username,
-        email,
-        role,
-        mode,
+    try {
+      await run(async () => {
+        const result = await api("admin-user-create", {
+          username,
+          password,
+          role,
+        });
+        setNotice(result.message);
+        setUsername("");
       });
-      setNotice(result.message);
-      setInvitation(
-        result.invitation ? { url: result.invitation, email } : null,
-      );
-      setUsername("");
-      setEmail("");
-    });
+    } finally {
+      setPassword("");
+      setConfirmation("");
+    }
   }
   return (
     <section className="admin-panel staff-management">
       <h2>Usuarios y roles</h2>
       <p>
-        Solo el superadministrador puede crear usuarios, asignar roles y
-        suspender accesos a este evento.
+        Creá usuarios locales de Camino al Limite con nombre, contraseña y rol.
+        Solo el superadministrador puede gestionar estos accesos.
       </p>
       {error && (
         <div role="alert" className="notice error">
@@ -84,51 +93,6 @@ export default function StaffManagement({
       {notice && (
         <div role="status" className="notice">
           {notice}
-        </div>
-      )}
-      {invitation && (
-        <div className="notice">
-          <strong>Invitación para {invitation.email}</strong>
-          <p>
-            Enlace privado de un solo uso. Compartilo únicamente con esta
-            persona para que defina su contraseña. Guardalo antes de salir: no
-            se conserva en este panel.
-          </p>
-          <label>
-            Enlace privado de invitación
-            <input
-              readOnly
-              value={invitation.url}
-              onFocus={(e) => e.target.select()}
-            />
-          </label>
-          <button
-            type="button"
-            className="button small"
-            onClick={() =>
-              navigator.clipboard
-                .writeText(invitation.url)
-                .then(() =>
-                  setNotice(
-                    "Enlace copiado. Compartilo únicamente con la persona invitada.",
-                  ),
-                )
-                .catch(() =>
-                  setError(
-                    "No se pudo copiar. Seleccioná y copiá el enlace manualmente.",
-                  ),
-                )
-            }
-          >
-            Copiar enlace
-          </button>
-          <button
-            type="button"
-            className="text-button"
-            onClick={() => setInvitation(null)}
-          >
-            Ocultar enlace
-          </button>
         </div>
       )}
       <details>
@@ -143,24 +107,8 @@ export default function StaffManagement({
         </dl>
       </details>
       <form onSubmit={create}>
-        <h3>Agregar usuario</h3>
+        <h3>Crear usuario local</h3>
         <div className="field-grid">
-          <label>
-            Tipo de alta
-            <select
-              value={mode}
-              disabled={busy}
-              onChange={(e) => setMode(e.target.value)}
-            >
-              <option value="link">
-                Crear usuario y obtener enlace privado
-              </option>
-              <option value="invite">Invitar usuario nuevo por correo</option>
-              <option value="existing">
-                Vincular cuenta existente por correo
-              </option>
-            </select>
-          </label>
           <label>
             Nombre de usuario
             <input
@@ -180,18 +128,6 @@ export default function StaffManagement({
             </small>
           </label>
           <label>
-            Correo electrónico
-            <input
-              required
-              type="email"
-              maxLength={150}
-              autoComplete="off"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={busy}
-            />
-          </label>
-          <label>
             Rol
             <select
               value={role}
@@ -205,23 +141,44 @@ export default function StaffManagement({
               ))}
             </select>
           </label>
+          <label>
+            Contraseña inicial
+            <input
+              required
+              type="password"
+              minLength={12}
+              maxLength={72}
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={busy}
+            />
+            <small>
+              Mínimo 12 caracteres. La contraseña no se mostrará en la lista de
+              usuarios.
+            </small>
+          </label>
+          <label>
+            Repetir contraseña inicial
+            <input
+              required
+              type="password"
+              minLength={12}
+              maxLength={72}
+              autoComplete="new-password"
+              value={confirmation}
+              onChange={(e) => setConfirmation(e.target.value)}
+              disabled={busy}
+            />
+          </label>
         </div>
         <p>{staffRoles[role].description}</p>
         <p className="muted">
-          {mode === "link"
-            ? "Se creará un enlace privado para compartir directamente con la persona. No depende del servicio de correo."
-            : mode === "invite"
-              ? "La persona recibirá un enlace para elegir su contraseña. El envío depende del servicio de correo de Supabase."
-              : "La persona conservará su contraseña actual. Solo se agregará acceso a Camino al Limite."}
+          La persona ingresará directamente con su usuario y contraseña. Después
+          podrá cambiarla desde Mi contraseña.
         </p>
         <button className="button" disabled={busy}>
-          {busy
-            ? "Procesando…"
-            : mode === "link"
-              ? "Crear y generar enlace"
-              : mode === "invite"
-                ? "Crear y enviar invitación"
-                : "Vincular cuenta"}
+          {busy ? "Creando…" : "Crear usuario local"}
         </button>
       </form>
       <h3>Equipo de administración</h3>
@@ -287,7 +244,7 @@ function StaffRow({
           {user.username}
           {own ? " (tu cuenta)" : ""}
         </strong>
-        <small>{user.email}</small>
+        <small>{user.local ? "Usuario local" : "Cuenta existente"}</small>
         <span className={"badge " + (user.active ? "confirmado" : "pendiente")}>
           {user.active ? "Activo" : "Suspendido"}
         </span>

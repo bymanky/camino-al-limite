@@ -25,6 +25,7 @@ import {
 import { receiptPdf, rosterPdf } from "./downloads";
 import Scanner from "./Scanner";
 import StaffManagement from "./StaffManagement";
+import OwnPassword from "./OwnPassword";
 import { staffRoles, type StaffProfile } from "./staff";
 export default function Admin() {
   const [profile, setProfile] = useState<StaffProfile | null>(null);
@@ -237,24 +238,10 @@ export default function Admin() {
             {" "}
             {busy ? "Ingresando…" : "Ingresar"}
           </button>
-          <button
-            type="button"
-            className="text-button"
-            disabled={busy || !username || !configured}
-            onClick={() =>
-              run(async () => {
-                await api("recovery", {
-                  username,
-                  redirect: `${location.origin}${location.pathname}?recovery=1#/admin`,
-                });
-                setNotice(
-                  "Si el usuario existe, recibirá instrucciones en su correo de administrador.",
-                );
-              })
-            }
-          >
-            Olvidé mi contraseña
-          </button>
+          <p className="muted">
+            Si olvidaste tu contraseña, contactá al responsable de la
+            organización.
+          </p>
         </form>
       </main>
     );
@@ -410,9 +397,20 @@ export default function Admin() {
             <Users size={17} /> Usuarios y roles
           </button>
         )}
+        <button
+          className={tab === "password" ? "active" : ""}
+          onClick={() => {
+            setSelected(null);
+            setTab("password");
+          }}
+        >
+          Mi contraseña
+        </button>
       </div>
       {alerts}
-      {tab === "users" && profile && can("users") ? (
+      {tab === "password" ? (
+        <OwnPassword />
+      ) : tab === "users" && profile && can("users") ? (
         <StaffManagement profile={profile} />
       ) : tab === "settings" ? (
         <form

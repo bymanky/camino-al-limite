@@ -337,7 +337,7 @@ Deno.serve(async (req) => {
       if (!origins.includes(new URL(redirect).origin))
         throw new SafeError("Enlace de recuperación inválido");
       const email = await adminEmail(username);
-      if (email) {
+      if (email && !email.endsWith("@camino-staff.invalid")) {
         const auth = createClient(
           env("SUPABASE_URL"),
           env("SUPABASE_ANON_KEY"),
@@ -424,7 +424,12 @@ Deno.serve(async (req) => {
     else throw new SafeError("Acción inválida");
     if (b.action === "admin-users")
       return reply({
-        users: await rpc("trail_staff_list", { p_admin: actor.id }),
+        users: (await rpc("trail_staff_list", { p_admin: actor.id })).map(
+          ({ email, ...user }: any) => ({
+            ...user,
+            local: email?.endsWith("@camino-staff.invalid") || false,
+          }),
+        ),
       });
     if (b.action === "admin-user-update") {
       const parsed = z
@@ -449,61 +454,71 @@ Deno.serve(async (req) => {
             .trim()
             .toLowerCase()
             .regex(/^[a-z0-9_.-]{3,40}$/),
-          email: z.string().trim().toLowerCase().email().max(150),
+          password: z
+            .string()
+            .min(12)
+            .max(72)
+            .refine((p) => new TextEncoder().encode(p).length <= 72),
           role: staffRole,
-          mode: z.enum(["link", "invite", "existing"]),
         })
-        .safeParse(b);
+        .strict()
+        .safeParse({
+          username: b.username,
+          password: b.password,
+          role: b.role,
+        });
       if (!parsed.success)
-        throw new SafeError("Revisá el nombre de usuario, el correo y el rol.");
+        throw new SafeError(
+          "Revisá el usuario, el rol y la contraseña (mínimo 12 caracteres y máximo 72 bytes).",
+        );
+      if (b.mode || b.email)
+        throw new SafeError(
+          "La creación de usuarios ahora es local: usá usuario, contraseña y rol.",
+        );
       const input = parsed.data;
       const staff = await rpc("trail_staff_list", { p_admin: actor.id });
-      if (
-        staff.some(
-          (u: any) => u.username === input.username || u.email === input.email,
+      if (staff.some((u: any) => u.username === input.username))
+        throw new SafeError("Ese nombre de usuario ya está registrado.");
+      // Identificador técnico interno para Supabase Auth: no es un correo real y no recibe mensajes.
+      const email =
+        "cal-" +
+        (await token("staff-email", input.username)).slice(0, 40) +
+        "@camino-staff.invalid";
+      let user = await findAuthUser(email);
+      if (user) {
+        if (
+          user.app_metadata?.trail_local !== true ||
+          user.app_metadata?.trail_username !== input.username
         )
-      )
-        throw new SafeError(
-          "El usuario o correo ya pertenece al equipo de administración. Modificalo desde la lista.",
-        );
-      let user = await findAuthUser(input.email);
-      if (input.mode === "existing" && !user)
-        throw new SafeError(
-          "No existe una cuenta con ese correo. Elegí invitar un usuario nuevo.",
-        );
-      if (input.mode !== "existing" && user)
-        throw new SafeError(
-          "Ese correo ya tiene una cuenta. Elegí vincular una cuenta existente.",
-        );
-      let invitation: string | undefined;
-      if (input.mode === "link") {
-        const { data, error } = await root.auth.admin.generateLink({
-          type: "invite",
-          email: input.email,
-          options: {
-            redirectTo:
-              "https://bymanky.github.io/camino-al-limite/?recovery=1#/admin",
-          },
-        });
-        if (error || !data.user || !data.properties?.action_link)
           throw new SafeError(
-            "No se pudo generar el enlace de invitación. Revisá el correo y reintentá.",
-            503,
+            "No se pudo crear esa cuenta. Elegí otro nombre de usuario.",
+            409,
           );
-        user = data.user;
-        invitation = data.properties.action_link;
-      }
-      if (input.mode === "invite") {
-        const { data, error } = await root.auth.admin.inviteUserByEmail(
-          input.email,
-          {
-            redirectTo:
-              "https://bymanky.github.io/camino-al-limite/?recovery=1#/admin",
-          },
+        // Reintentar un alta incompleta no cambia la contraseña ni toma control de otra cuenta.
+        const auth = createClient(
+          env("SUPABASE_URL"),
+          env("SUPABASE_ANON_KEY"),
+          { auth: { persistSession: false, autoRefreshToken: false } },
         );
+        const verified = await auth.auth.signInWithPassword({
+          email,
+          password: input.password,
+        });
+        if (verified.error || verified.data.user?.id !== user.id)
+          throw new SafeError(
+            "El alta anterior quedó incompleta. Reintentá con la contraseña del primer intento o contactá al responsable.",
+            409,
+          );
+      } else {
+        const { data, error } = await root.auth.admin.createUser({
+          email,
+          password: input.password,
+          email_confirm: true,
+          app_metadata: { trail_local: true, trail_username: input.username },
+        });
         if (error || !data.user)
           throw new SafeError(
-            "No se pudo enviar la invitación. Revisá el correo y el límite de envíos de Supabase. Si la cuenta ya se creó, usá vincular cuenta existente.",
+            "No se pudo crear el usuario. Revisá la contraseña y reintentá.",
             503,
           );
         user = data.user;
@@ -511,26 +526,21 @@ Deno.serve(async (req) => {
       try {
         await rpc("trail_staff_add", {
           p_admin: actor.id,
-          p_id: user!.id,
+          p_id: user.id,
           p_username: input.username,
-          p_email: input.email,
+          p_email: email,
           p_role: input.role,
         });
       } catch {
         throw new SafeError(
-          "No se pudo confirmar el acceso. Revisá la lista antes de reintentar. Si no aparece, vinculá la cuenta existente.",
+          "No se pudo confirmar el acceso. Revisá la lista antes de reintentar con el mismo usuario y contraseña.",
           409,
         );
       }
       return reply({
         ok: true,
-        invitation,
         message:
-          input.mode === "link"
-            ? "Usuario creado. Copiá su enlace privado de invitación antes de salir de esta pantalla."
-            : input.mode === "invite"
-              ? "Usuario creado. Recibirá una invitación para definir su contraseña."
-              : "Cuenta vinculada. Ingresará con su contraseña actual.",
+          "Usuario local creado. Ya puede ingresar con su nombre de usuario y contraseña.",
       });
     }
 

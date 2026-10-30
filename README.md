@@ -109,7 +109,7 @@ No se inventan reglamentos, consentimientos ni datos del evento. Las versiones d
 
 ## Validación
 
-78 pruebas automáticas incluidas: reglas de equipos de exactamente cuatro personas, duplicados, consentimiento, CSV con ceros iniciales y protección contra fórmulas, precio validado en base, transacciones completas, reintentos sin duplicados, permisos para visitantes y usuarios comunes, autorización administrativa, auditoría, asistencia idempotente, cancelación, PDF con cuatro integrantes y QR, y paginación de la nómina. La base SQL se verifica con Postgres embebido (PGlite), con tablas de Auth y Storage de prueba; no sustituye la comprobación de los servicios reales de Supabase. También se comprobó el formulario en un navegador con pantalla de celular y se inspeccionó visualmente un PDF generado con datos ficticios.
+88 pruebas automáticas incluidas: reglas de equipos de exactamente cuatro personas, duplicados, consentimiento, CSV con ceros iniciales y protección contra fórmulas, precio validado en base, transacciones completas, reintentos sin duplicados, permisos para visitantes y usuarios comunes, autorización administrativa, auditoría, asistencia idempotente, cancelación, PDF con cuatro integrantes y QR, y paginación de la nómina. La base SQL se verifica con Postgres embebido (PGlite), con tablas de Auth y Storage de prueba; no sustituye la comprobación de los servicios reales de Supabase. También se comprobó el formulario en un navegador con pantalla de celular y se inspeccionó visualmente un PDF generado con datos ficticios.
 
 Antes de admitir participantes reales, verificar en el proyecto final:
 
@@ -141,7 +141,7 @@ Antes de admitir participantes reales, verificar en el proyecto final:
 
 ## Usuarios y roles
 
-El superadministrador gestiona las cuentas desde Administración → Usuarios y roles. Puede invitar por correo, vincular una cuenta existente y cambiar su rol o suspender su acceso a este evento. Las invitaciones dependen del servicio de correo y los límites de Supabase. Cada persona define su contraseña; no se almacena ni muestra en el panel. Vincular una cuenta existente no cambia su contraseña ni sus otros accesos de Supabase.
+El superadministrador gestiona las cuentas desde Administración → Usuarios y roles. Puede crear usuarios locales con nombre de usuario, contraseña inicial (mínimo 12 caracteres) y rol; también cambiar roles o suspender accesos. No se solicita correo, no se envían invitaciones y no se depende de SMTP. Cada persona puede cambiar su propia contraseña desde Mi contraseña. Las cuentas existentes, incluido bymanky, conservan su acceso y contraseña.
 
 - Superadministrador: todas las funciones y gestión de usuarios.
 - Administrador: evento, equipos, pagos, asistencia y nómina.
@@ -151,4 +151,4 @@ El superadministrador gestiona las cuentas desde Administración → Usuarios y 
 
 Los permisos se consultan en la base privada en cada petición y las escrituras se comprueban también en SQL. Suspender un acceso impide la siguiente operación aunque el JWT siga vigente. No se usa user_metadata para autorizar. El superadministrador no puede cambiar su propio rol ni suspenderse. La migración inicial promueve únicamente la cuenta activa bymanky; los demás administradores existentes conservan el rol Administrador.
 
-La opción predeterminada para cuentas nuevas genera un enlace privado de invitación sin enviar correo. El superadministrador debe copiarlo y compartirlo únicamente con esa persona antes de salir del panel. El enlace solo se conserva en memoria. El envío automático por correo es opcional y requiere un SMTP propio para direcciones externas, según las restricciones del servicio predeterminado de Supabase.
+Supabase Auth administra el hash de las contraseñas y las sesiones. Para cumplir su interfaz interna se genera un identificador técnico opaco bajo @camino-staff.invalid; no corresponde a un correo real ni recibe mensajes. El formulario, el acceso y la lista de usuarios utilizan nombres de usuario. Las contraseñas no se devuelven en las respuestas ni se guardan en el código o la lista. El alta se comprueba en el servidor y solo el superadministrador puede ejecutarla. Un reintento de alta incompleta exige la contraseña original y nunca reemplaza la de otra cuenta. Los enlaces antiguos de recuperación se conservan para cuentas anteriores; los usuarios locales sin acceso deben contactar al responsable.
