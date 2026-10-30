@@ -449,6 +449,10 @@ export default function App() {
             <BrandLogo brand="emprende" />
           </div>
         </div>
+        <div className="site-credit">
+          <span>Un sitio de MIYITON</span>
+          <img src={`${import.meta.env.BASE_URL}logos/miyiton-transparent.png`} alt="MIYITON" width="46" height="40" loading="lazy" decoding="async" />
+        </div>
       </footer>
     </>
   );

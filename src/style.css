@@ -580,9 +580,30 @@ p {
 footer {
   padding: 40px 5.5%;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 25px;
+}
+.site-credit {
+  flex: 0 0 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #68765d;
+  background: none;
+}
+.site-credit img {
+  width: 46px;
+  height: 40px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 0.35px #163e32);
+}
+@media (max-width: 700px) {
+  .site-credit { order: 4; font-size: 9px; }
+  .site-credit img { width: 40px; height: 35px; }
 }
 footer p {
   font-size: 11px;
