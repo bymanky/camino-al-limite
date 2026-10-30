@@ -24,7 +24,12 @@ import {
 } from "./model";
 import { receiptPdf, rosterPdf } from "./downloads";
 import Scanner from "./Scanner";
+import StaffManagement from "./StaffManagement";
+import { staffRoles, type StaffProfile } from "./staff";
 export default function Admin() {
+  const [profile, setProfile] = useState<StaffProfile | null>(null);
+  const can = (permission: string) =>
+    Boolean(profile?.permissions.includes(permission));
   const [logged, setLogged] = useState(false);
   const [checking, setChecking] = useState(true);
   const [username, setUsername] = useState("");
@@ -44,13 +49,29 @@ export default function Admin() {
   const [editing, setEditing] = useState(false);
   const editorRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    if (editing) editorRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    if (editing)
+      editorRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
   }, [editing]);
   const [code, setCode] = useState("");
   async function load() {
-    const result = await api("admin-list");
-    setTeams(result.teams);
-    setSettings(result.settings);
+    const { profile: current } = await api<{ profile: StaffProfile }>(
+      "admin-me",
+    );
+    setProfile(current);
+    if (current.permissions.includes("read")) {
+      const result = await api("admin-list");
+      setTeams(result.teams);
+      setSettings(result.settings);
+    } else setTeams([]);
+    setTab((previous) => {
+      if (previous === "users" && !current.permissions.includes("users"))
+        return current.permissions.includes("read") ? "teams" : "scanner";
+      if (previous === "settings" && !current.permissions.includes("manage"))
+        return current.permissions.includes("read") ? "teams" : "scanner";
+      return previous === "teams" && !current.permissions.includes("read")
+        ? "scanner"
+        : previous;
+    });
     setLogged(true);
   }
   useEffect(() => {
@@ -70,6 +91,7 @@ export default function Admin() {
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
         setLogged(false);
+        setProfile(null);
         setTeams([]);
         setSelected(null);
       }
@@ -295,6 +317,11 @@ export default function Admin() {
         <div>
           <div className="eyebrow green">CAMINO AL LIMITE · ORGANIZACIÓN</div>
           <h1>Todo el equipo, a la vista.</h1>
+          {profile && (
+            <p className="staff-identity">
+              {profile.username} · {staffRoles[profile.role].name}
+            </p>
+          )}
         </div>
         <button
           className="button outline"
@@ -308,65 +335,86 @@ export default function Admin() {
           <LogOut size={17} /> Salir
         </button>
       </div>
-      <div className="stats">
-        {[
-          ["Equipos", active.length],
-          ["Participantes", active.reduce((n, t) => n + t.members.length, 0)],
-          [
-            "Pagos confirmados",
-            active.filter((t) => t.payment === "confirmado").length,
-          ],
-          [
-            "Pagos por verificar",
-            active.filter((t) => t.payment !== "confirmado").length,
-          ],
-          [
-            "Presentes",
-            active.reduce(
-              (n, t) => n + t.members.filter((m) => m.present_at).length,
-              0,
-            ),
-          ],
-          [
-            "Importe confirmado",
-            money(
-              active
-                .filter((t) => t.payment === "confirmado")
-                .reduce((n, t) => n + t.amount, 0),
-            ),
-          ],
-        ].map(([title, value]) => (
-          <div key={title}>
-            <small>{title}</small>
-            <strong>{value}</strong>
-          </div>
-        ))}
-      </div>
+      {can("read") && (
+        <div className="stats">
+          {[
+            ["Equipos", active.length],
+            ["Participantes", active.reduce((n, t) => n + t.members.length, 0)],
+            [
+              "Pagos confirmados",
+              active.filter((t) => t.payment === "confirmado").length,
+            ],
+            [
+              "Pagos por verificar",
+              active.filter((t) => t.payment !== "confirmado").length,
+            ],
+            [
+              "Presentes",
+              active.reduce(
+                (n, t) => n + t.members.filter((m) => m.present_at).length,
+                0,
+              ),
+            ],
+            [
+              "Importe confirmado",
+              money(
+                active
+                  .filter((t) => t.payment === "confirmado")
+                  .reduce((n, t) => n + t.amount, 0),
+              ),
+            ],
+          ].map(([title, value]) => (
+            <div key={title}>
+              <small>{title}</small>
+              <strong>{value}</strong>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="tabs">
-        <button
-          className={tab === "teams" ? "active" : ""}
-          onClick={() => setTab("teams")}
-        >
-          <Users size={17} /> Inscripciones
-        </button>
-        <button
-          className={tab === "scanner" ? "active" : ""}
-          onClick={() => {
-            setSelected(null);
-            setTab("scanner");
-          }}
-        >
-          <ScanLine size={17} /> Escanear
-        </button>
-        <button
-          className={tab === "settings" ? "active" : ""}
-          onClick={() => setTab("settings")}
-        >
-          <SettingsIcon size={17} /> Evento
-        </button>
+        {can("read") && (
+          <button
+            className={tab === "teams" ? "active" : ""}
+            onClick={() => setTab("teams")}
+          >
+            <Users size={17} /> Inscripciones
+          </button>
+        )}
+        {can("lookup") && (
+          <button
+            className={tab === "scanner" ? "active" : ""}
+            onClick={() => {
+              setSelected(null);
+              setTab("scanner");
+            }}
+          >
+            <ScanLine size={17} /> Escanear
+          </button>
+        )}
+        {can("manage") && (
+          <button
+            className={tab === "settings" ? "active" : ""}
+            onClick={() => setTab("settings")}
+          >
+            <SettingsIcon size={17} /> Evento
+          </button>
+        )}
+        {can("users") && (
+          <button
+            className={tab === "users" ? "active" : ""}
+            onClick={() => {
+              setSelected(null);
+              setTab("users");
+            }}
+          >
+            <Users size={17} /> Usuarios y roles
+          </button>
+        )}
       </div>
       {alerts}
-      {tab === "settings" ? (
+      {tab === "users" && profile && can("users") ? (
+        <StaffManagement profile={profile} />
+      ) : tab === "settings" ? (
         <form
           className="admin-panel"
           onSubmit={(e) => {
@@ -478,13 +526,15 @@ export default function Admin() {
             >
               Inscripciones
             </button>
-            <button
-              className={trash ? "button small" : "button small outline"}
-              onClick={() => setTrash(true)}
-            >
-              <Trash2 size={16} /> Papelera (
-              {teams.filter((t) => t.deleted_at).length})
-            </button>
+            {can("manage") && (
+              <button
+                className={trash ? "button small" : "button small outline"}
+                onClick={() => setTrash(true)}
+              >
+                <Trash2 size={16} /> Papelera (
+                {teams.filter((t) => t.deleted_at).length})
+              </button>
+            )}
           </div>
           <div className="filters">
             <label className="search">
@@ -625,18 +675,20 @@ export default function Admin() {
             </button>
             <div className="eyebrow green">{selected.code}</div>
             <h2>{selected.team}</h2>
-            <p>
-              {selected.responsible} · {selected.phone}
-              <br />
-              {selected.email}
-            </p>
+            {can("read") && (
+              <p>
+                {selected.responsible} · {selected.phone}
+                <br />
+                {selected.email}
+              </p>
+            )}
             <div className="notice">
               Inscripción: {selected.status} · Pago:{" "}
               {selected.payment.replace("_", " ")}
               <br />
               {methods[selected.method]} · {money(selected.amount)}
             </div>
-            {selected.receipt_path && (
+            {can("payments") && selected.receipt_path && (
               <button
                 className="text-button"
                 disabled={busy}
@@ -667,7 +719,7 @@ export default function Admin() {
             ) : (
               <button
                 className="button outline"
-                disabled={busy}
+                disabled={busy || !can("manage")}
                 onClick={() => setEditing(!editing)}
               >
                 <Pencil size={16} />{" "}
@@ -696,6 +748,7 @@ export default function Admin() {
                   disabled={
                     busy ||
                     Boolean(selected.deleted_at) ||
+                    !can("attendance") ||
                     Boolean(m.present_at) ||
                     selected.status !== "activa"
                   }
@@ -709,7 +762,7 @@ export default function Admin() {
                     "Marcar presente"
                   )}
                 </button>
-                {!selected.deleted_at && (
+                {can("manage") && !selected.deleted_at && (
                   <button
                     className="text-button danger"
                     disabled={busy}
@@ -721,7 +774,7 @@ export default function Admin() {
                 )}
               </div>
             ))}
-            {Boolean(selected.removed_members?.length) && (
+            {can("manage") && Boolean(selected.removed_members?.length) && (
               <details>
                 <summary>
                   Participantes en papelera ({selected.removed_members!.length})
@@ -747,6 +800,7 @@ export default function Admin() {
               disabled={
                 busy ||
                 Boolean(selected.deleted_at) ||
+                !can("attendance") ||
                 selected.members.length === 0 ||
                 selected.status !== "activa" ||
                 selected.members.every((m) => m.present_at)
@@ -762,7 +816,9 @@ export default function Admin() {
             <label>
               Estado del pago
               <select
-                disabled={busy || Boolean(selected.deleted_at)}
+                disabled={
+                  busy || !can("payments") || Boolean(selected.deleted_at)
+                }
                 value={selected.payment}
                 onChange={(e) => update({ payment: e.target.value })}
               >
@@ -774,7 +830,9 @@ export default function Admin() {
             <label>
               Observación interna
               <textarea
-                disabled={busy || Boolean(selected.deleted_at)}
+                disabled={
+                  busy || !can("manage") || Boolean(selected.deleted_at)
+                }
                 value={selected.notes || ""}
                 onChange={(e) =>
                   setSelected({ ...selected, notes: e.target.value })
@@ -783,12 +841,12 @@ export default function Admin() {
             </label>
             <button
               className="button small"
-              disabled={busy || Boolean(selected.deleted_at)}
+              disabled={busy || !can("manage") || Boolean(selected.deleted_at)}
               onClick={() => update({ notes: selected.notes })}
             >
               Guardar observación
             </button>
-            {!selected.deleted_at && editing && (
+            {can("manage") && !selected.deleted_at && editing && (
               <section className="team-editor" ref={editorRef}>
                 <h3>Editar equipo y participantes</h3>
                 <form
@@ -874,24 +932,27 @@ export default function Admin() {
               </section>
             )}
             <div className="form-actions">
-              <button
-                className="text-button"
-                disabled={busy}
-                onClick={() =>
-                  run(async () => {
-                    const result = await api("admin-receipt", {
-                      id: selected.id,
-                    });
-                    await receiptPdf(result.team, result.token);
-                  })
-                }
-              >
-                <Download size={15} /> Descargar PDF
-              </button>
+              {can("read") && (
+                <button
+                  className="text-button"
+                  disabled={busy}
+                  onClick={() =>
+                    run(async () => {
+                      const result = await api("admin-receipt", {
+                        id: selected.id,
+                      });
+                      await receiptPdf(result.team, result.token);
+                    })
+                  }
+                >
+                  <Download size={15} /> Descargar PDF
+                </button>
+              )}
               <button
                 className="text-button danger"
                 disabled={
                   busy ||
+                  !can("manage") ||
                   Boolean(selected.deleted_at) ||
                   selected.status === "cancelada"
                 }
@@ -906,7 +967,7 @@ export default function Admin() {
               >
                 Cancelar inscripción
               </button>
-              {!selected.deleted_at && (
+              {can("manage") && !selected.deleted_at && (
                 <button
                   className="text-button danger"
                   disabled={busy}

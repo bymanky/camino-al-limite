@@ -10,7 +10,7 @@ create table public.trail_settings (
  min_members int not null default 4 check(min_members=4)
 );
 insert into public.trail_settings(id) values(1);
-create table trail_private.admins(user_id uuid primary key references auth.users(id) on delete cascade, username text unique not null check(username=lower(username) and username ~ '^[a-z0-9_.-]{3,40}$'), active boolean not null default true);
+create table trail_private.admins(user_id uuid primary key references auth.users(id) on delete cascade, username text unique not null check(username=lower(username) and username ~ '^[a-z0-9_.-]{3,40}$'), active boolean not null default true, role text not null default 'administrador' check(role in ('superadministrador','administrador','cobros','acreditacion','consulta')), email text not null default '', created_at timestamptz not null default now());
 create table public.trail_teams (
  id uuid primary key default gen_random_uuid(), code text not null unique,
  team text not null check(length(team) between 2 and 80), responsible text not null check(length(responsible) between 3 and 100),
@@ -56,6 +56,41 @@ declare n int;begin
  on conflict(key) do update set hits=case when trail_private.rate_limits.expires_at<now() then 1 else trail_private.rate_limits.hits+1 end, expires_at=case when trail_private.rate_limits.expires_at<now() then now()+interval '15 minutes' else trail_private.rate_limits.expires_at end returning hits into n;
  return n<=p_limit;
 end $$;
+create function public.trail_has_permission(p_id uuid,p_permission text) returns boolean language sql stable security invoker set search_path='' as $$
+ select exists(select 1 from trail_private.admins a where a.user_id=p_id and a.active and case p_permission
+ when 'users' then a.role='superadministrador'
+ when 'manage' then a.role in ('superadministrador','administrador')
+ when 'read' then a.role in ('superadministrador','administrador','cobros','consulta')
+ when 'lookup' then true
+ when 'payments' then a.role in ('superadministrador','administrador','cobros')
+ when 'attendance' then a.role in ('superadministrador','administrador','acreditacion')
+ else false end)
+$$;
+create function public.trail_staff_profile(p_id uuid) returns jsonb language sql stable security invoker set search_path='' as $$
+ select jsonb_build_object('id',a.user_id,'username',a.username,'role',a.role,'permissions',(select coalesce(jsonb_agg(p),'[]'::jsonb) from unnest(array['users','manage','read','lookup','payments','attendance']) p where public.trail_has_permission(a.user_id,p))) from trail_private.admins a where a.user_id=p_id and a.active
+$$;
+create function public.trail_staff_list(p_admin uuid) returns jsonb language plpgsql security invoker set search_path='' as $$
+begin
+ if not public.trail_has_permission(p_admin,'users') then raise exception 'Acceso denegado';end if;
+ return (select coalesce(jsonb_agg(jsonb_build_object('id',user_id,'username',username,'email',email,'role',role,'active',active,'created_at',created_at) order by username),'[]'::jsonb) from trail_private.admins);
+end $$;
+create function public.trail_staff_add(p_admin uuid,p_id uuid,p_username text,p_email text,p_role text) returns void language plpgsql security invoker set search_path='' as $$
+begin
+ perform pg_advisory_xact_lock(728496103);
+ if not public.trail_has_permission(p_admin,'users') then raise exception 'Acceso denegado';end if;
+ insert into trail_private.admins(user_id,username,email,role) values(p_id,p_username,lower(p_email),p_role);
+ insert into public.trail_audit(admin_id,action,details) values(p_admin,'usuario_creado',jsonb_build_object('usuario',p_id,'rol',p_role));
+end $$;
+create function public.trail_staff_update(p_admin uuid,p_id uuid,p_role text,p_active boolean) returns void language plpgsql security invoker set search_path='' as $$
+declare previous trail_private.admins;begin
+ perform pg_advisory_xact_lock(728496103);
+ if not public.trail_has_permission(p_admin,'users') then raise exception 'Acceso denegado';end if;
+ if p_admin=p_id then raise exception 'No podés cambiar tu propio rol ni suspender tu acceso';end if;
+ select * into previous from trail_private.admins where user_id=p_id for update;
+ if not found then raise exception 'Usuario inexistente';end if;
+ update trail_private.admins set role=p_role,active=p_active where user_id=p_id;
+ insert into public.trail_audit(admin_id,action,details) values(p_admin,'usuario_actualizado',jsonb_build_object('usuario',p_id,'rol_anterior',previous.role,'rol',p_role,'activo',p_active));
+end $$;
 create function public.trail_team(p_id uuid) returns jsonb language sql stable security invoker set search_path='' as $$
  select (to_jsonb(t)-'accepted_rules'-'accepted_privacy') || jsonb_build_object('members',coalesce((select jsonb_agg(to_jsonb(m)-'team_id' order by position) from public.trail_members m where m.team_id=t.id and m.deleted_at is null),'[]'::jsonb),'removed_members',coalesce((select jsonb_agg(to_jsonb(m)-'team_id' order by position) from public.trail_members m where m.team_id=t.id and m.deleted_at is not null),'[]'::jsonb)) from public.trail_teams t where t.id=p_id
 $$;
@@ -86,6 +121,7 @@ create function public.trail_lookup(p_code text,p_hash text) returns uuid langua
 create function public.trail_admin_update(p_admin uuid,p_id uuid,p_patch jsonb) returns jsonb language plpgsql security invoker set search_path='' as $$
 declare m jsonb;begin
  if not public.trail_is_admin(p_admin) then raise exception 'Acceso denegado';end if;
+ if not public.trail_has_permission(p_admin,'manage') and (not public.trail_has_permission(p_admin,'payments') or not (p_patch ? 'payment') or exists(select 1 from jsonb_object_keys(p_patch) k where k<>'payment')) then raise exception 'Acceso denegado';end if;
  perform 1 from public.trail_teams where id=p_id and deleted_at is null for update;if not found then raise exception 'Inscripción inexistente';end if;
  update public.trail_teams set team=coalesce(p_patch->>'team',team),responsible=coalesce(p_patch->>'responsible',responsible),phone=coalesce(p_patch->>'phone',phone),email=coalesce(p_patch->>'email',email),notes=coalesce(p_patch->>'notes',notes),payment=coalesce(p_patch->>'payment',payment),status=coalesce(p_patch->>'status',status) where id=p_id;
  if p_patch ? 'members' then
@@ -100,7 +136,7 @@ declare m jsonb;begin
 end $$;
 create function public.trail_attend(p_admin uuid,p_id uuid,p_ids uuid[]) returns jsonb language plpgsql security invoker set search_path='' as $$
 declare m record;begin
- if not public.trail_is_admin(p_admin) then raise exception 'Acceso denegado';end if;
+ if not public.trail_has_permission(p_admin,'attendance') then raise exception 'Acceso denegado';end if;
  perform 1 from public.trail_teams where id=p_id and deleted_at is null and status='activa' for update;if not found then raise exception 'Inscripción inexistente o cancelada';end if;
  if cardinality(p_ids) not between 1 and 4 or exists(select 1 from unnest(p_ids) x where not exists(select 1 from public.trail_members where id=x and team_id=p_id and deleted_at is null)) then raise exception 'Integrantes inválidos';end if;
  for m in update public.trail_members set present_at=now(),present_by=p_admin where team_id=p_id and id=any(p_ids) and present_at is null returning id loop
@@ -111,14 +147,14 @@ end $$;
 create function public.trail_attach(p_id uuid,p_path text) returns void language sql security invoker set search_path='' as $$update public.trail_teams set receipt_path=p_path,payment=case when payment='pendiente' then 'en_revision' else payment end where id=p_id$$;
 create function public.trail_settings_update(p_admin uuid,p jsonb) returns jsonb language plpgsql security invoker set search_path='' as $$
 declare s public.trail_settings;begin
- if not public.trail_is_admin(p_admin) then raise exception 'Acceso denegado';end if;
+ if not public.trail_has_permission(p_admin,'manage') then raise exception 'Acceso denegado';end if;
  if (p->>'open')::boolean and (coalesce(p->>'rules','')='' or coalesce(p->>'privacy','')='') then raise exception 'Publicá el reglamento y el aviso de privacidad antes de abrir';end if;
  update public.trail_settings set date=p->>'date',time=p->>'time',location=p->>'location',deadline=p->>'deadline',contact=p->>'contact',rules=p->>'rules',privacy=p->>'privacy',open=(p->>'open')::boolean,min_members=4 where id=1 returning * into s;
  insert into public.trail_audit(admin_id,action,details) values(p_admin,'configuracion',jsonb_build_object('abiertas',s.open));return to_jsonb(s);
 end $$;
 create function public.trail_admin_remove(p_admin uuid,p_id uuid,p_member uuid,p_restore boolean) returns jsonb language plpgsql security invoker set search_path='' as $$
 declare changed int;begin
- if not public.trail_is_admin(p_admin) then raise exception 'Acceso denegado';end if;
+ if not public.trail_has_permission(p_admin,'manage') then raise exception 'Acceso denegado';end if;
  perform 1 from public.trail_teams where id=p_id for update;
  if not found then raise exception 'Inscripción inexistente';end if;
  if p_member is null then

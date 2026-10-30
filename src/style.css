@@ -602,8 +602,14 @@ footer {
   filter: drop-shadow(0 0 0.35px #163e32);
 }
 @media (max-width: 700px) {
-  .site-credit { order: 4; font-size: 9px; }
-  .site-credit img { width: 40px; height: 35px; }
+  .site-credit {
+    order: 4;
+    font-size: 9px;
+  }
+  .site-credit img {
+    width: 40px;
+    height: 35px;
+  }
 }
 footer p {
   font-size: 11px;
@@ -1436,4 +1442,57 @@ summary {
 .member-row > span {
   flex: 1;
   min-width: 150px;
+}
+
+.staff-identity {
+  font-size: 12px;
+  color: #68765d;
+}
+.role-guide {
+  display: grid;
+  gap: 12px;
+}
+.role-guide dt {
+  font-weight: 700;
+}
+.role-guide dd {
+  margin: 4px 0;
+  color: #68765d;
+  font-size: 13px;
+}
+.staff-list {
+  display: grid;
+  gap: 16px;
+}
+.staff-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(160px, 1fr) auto auto;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid var(--line);
+  padding: 18px;
+  border-radius: 8px;
+}
+.staff-row small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.staff-row .badge {
+  display: inline-block;
+  margin-top: 8px;
+}
+.staff-management > form {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+@media (max-width: 800px) {
+  .staff-row {
+    grid-template-columns: 1fr;
+  }
+  .tabs {
+    flex-wrap: wrap;
+  }
+  .staff-management .field-grid {
+    grid-template-columns: 1fr;
+  }
 }

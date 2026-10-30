@@ -106,6 +106,9 @@ async function rpc(name: string, args: Record<string, unknown> = {}) {
   const { data, error } = await root.rpc(name, args);
   if (error) {
     const safe = [
+      "Acceso denegado",
+      "No podés cambiar tu propio rol ni suspender tu acceso",
+      "Usuario inexistente",
       "Las inscripciones están cerradas",
       "El plazo de inscripción finalizó",
       "Cantidad de integrantes inválida",
@@ -148,18 +151,67 @@ async function limited(req: Request, scope: string, max: number) {
       429,
     );
 }
-async function admin(req: Request) {
+type Actor = {
+  id: string;
+  username: string;
+  role: string;
+  permissions: string[];
+};
+async function admin(req: Request): Promise<Actor> {
   const header = req.headers.get("authorization") || "";
   if (!header.startsWith("Bearer "))
     throw new SafeError("Ingresá para continuar", 401);
   const { data, error } = await root.auth.getUser(header.slice(7));
-  if (
-    error ||
-    !data.user ||
-    !(await rpc("trail_is_admin", { p_id: data.user.id }))
-  )
+  if (error || !data.user)
     throw new SafeError("No tenés permiso para administrar este evento", 403);
-  return data.user.id;
+  const profile = await rpc("trail_staff_profile", { p_id: data.user.id });
+  if (!profile)
+    throw new SafeError("No tenés permiso para administrar este evento", 403);
+  return profile;
+}
+function requirePermission(actor: Actor, permission: string) {
+  if (!actor.permissions.includes(permission))
+    throw new SafeError("Tu rol no permite realizar esta operación", 403);
+}
+function teamForActor(t: any, actor: Actor) {
+  if (actor.permissions.includes("read")) return t;
+  return {
+    id: t.id,
+    code: t.code,
+    team: t.team,
+    payment: t.payment,
+    status: t.status,
+    amount: t.amount,
+    members: t.members.map((m: any) => ({
+      id: m.id,
+      name: m.name,
+      document: m.document,
+      present_at: m.present_at,
+    })),
+  };
+}
+const staffRole = z.enum([
+  "superadministrador",
+  "administrador",
+  "cobros",
+  "acreditacion",
+  "consulta",
+]);
+async function findAuthUser(email: string) {
+  for (let page = 1; ; page++) {
+    const { data, error } = await root.auth.admin.listUsers({
+      page,
+      perPage: 200,
+    });
+    if (error)
+      throw new SafeError(
+        "No pudimos consultar las cuentas. Reintentá en unos momentos.",
+        503,
+      );
+    const found = data.users.find((u) => u.email?.toLowerCase() === email);
+    if (found) return found;
+    if (data.users.length < 200) return null;
+  }
 }
 function fileBytes(a: unknown) {
   if (!a) return null;
@@ -348,6 +400,119 @@ Deno.serve(async (req) => {
       );
     }
     const actor = await admin(req);
+    if (b.action === "admin-me") return reply({ profile: actor });
+    const permission: Record<string, string> = {
+      "admin-list": "read",
+      "admin-lookup": "lookup",
+      "admin-settings": "manage",
+      "admin-attend": "attendance",
+      "admin-file": "payments",
+      "admin-receipt": "read",
+      "admin-remove": "manage",
+      "admin-users": "users",
+      "admin-user-create": "users",
+      "admin-user-update": "users",
+    };
+    if (b.action === "admin-update") {
+      const keys = Object.keys(b.patch || {});
+      requirePermission(
+        actor,
+        keys.length === 1 && keys[0] === "payment" ? "payments" : "manage",
+      );
+    } else if (permission[b.action])
+      requirePermission(actor, permission[b.action]);
+    else throw new SafeError("Acción inválida");
+    if (b.action === "admin-users")
+      return reply({
+        users: await rpc("trail_staff_list", { p_admin: actor.id }),
+      });
+    if (b.action === "admin-user-update") {
+      const parsed = z
+        .object({ id: z.string().uuid(), role: staffRole, active: z.boolean() })
+        .safeParse(b);
+      if (!parsed.success)
+        throw new SafeError("Revisá el usuario y el rol seleccionado.");
+      await rpc("trail_staff_update", {
+        p_admin: actor.id,
+        p_id: parsed.data.id,
+        p_role: parsed.data.role,
+        p_active: parsed.data.active,
+      });
+      return reply({ ok: true });
+    }
+    if (b.action === "admin-user-create") {
+      await limited(req, "staff-create", 10);
+      const parsed = z
+        .object({
+          username: z
+            .string()
+            .trim()
+            .toLowerCase()
+            .regex(/^[a-z0-9_.-]{3,40}$/),
+          email: z.string().trim().toLowerCase().email().max(150),
+          role: staffRole,
+          mode: z.enum(["invite", "existing"]),
+        })
+        .safeParse(b);
+      if (!parsed.success)
+        throw new SafeError("Revisá el nombre de usuario, el correo y el rol.");
+      const input = parsed.data;
+      const staff = await rpc("trail_staff_list", { p_admin: actor.id });
+      if (
+        staff.some(
+          (u: any) => u.username === input.username || u.email === input.email,
+        )
+      )
+        throw new SafeError(
+          "El usuario o correo ya pertenece al equipo de administración. Modificalo desde la lista.",
+        );
+      let user = await findAuthUser(input.email);
+      if (input.mode === "existing" && !user)
+        throw new SafeError(
+          "No existe una cuenta con ese correo. Elegí invitar un usuario nuevo.",
+        );
+      if (input.mode === "invite" && user)
+        throw new SafeError(
+          "Ese correo ya tiene una cuenta. Elegí vincular una cuenta existente.",
+        );
+      if (input.mode === "invite") {
+        const { data, error } = await root.auth.admin.inviteUserByEmail(
+          input.email,
+          {
+            redirectTo:
+              "https://bymanky.github.io/camino-al-limite/?recovery=1#/admin",
+          },
+        );
+        if (error || !data.user)
+          throw new SafeError(
+            "No se pudo enviar la invitación. Revisá el correo y el límite de envíos de Supabase. Si la cuenta ya se creó, usá vincular cuenta existente.",
+            503,
+          );
+        user = data.user;
+      }
+      try {
+        await rpc("trail_staff_add", {
+          p_admin: actor.id,
+          p_id: user!.id,
+          p_username: input.username,
+          p_email: input.email,
+          p_role: input.role,
+        });
+      } catch {
+        throw new SafeError(
+          "No se pudo confirmar el acceso. Revisá la lista antes de reintentar. Si no aparece, vinculá la cuenta existente.",
+          409,
+        );
+      }
+      return reply({
+        ok: true,
+        message:
+          input.mode === "invite"
+            ? "Usuario creado. Recibirá una invitación para definir su contraseña."
+            : "Cuenta vinculada. Ingresará con su contraseña actual.",
+      });
+    }
+
     if (b.action === "admin-list") {
       const teams: any[] = [];
       for (let from = 0; ; from += 500) {
@@ -379,7 +544,17 @@ Deno.serve(async (req) => {
         .eq("id", 1)
         .single();
       if (error) throw error;
-      return reply({ teams, settings: data });
+      return reply({
+        teams: teams
+          .filter((t) => actor.permissions.includes("manage") || !t.deleted_at)
+          .map((t) => ({
+            ...t,
+            removed_members: actor.permissions.includes("manage")
+              ? t.removed_members
+              : [],
+          })),
+        settings: data,
+      });
     }
     if (b.action === "admin-lookup") {
       const code = z.string().trim().min(4).max(200).parse(b.code);
@@ -389,12 +564,12 @@ Deno.serve(async (req) => {
         p_hash: await hash(qr),
       });
       if (!id) throw new SafeError("El código no existe", 404);
-      return reply(await getTeam(id));
+      return reply(teamForActor(await getTeam(id), actor));
     }
     if (b.action === "admin-settings")
       return reply(
         await rpc("trail_settings_update", {
-          p_admin: actor,
+          p_admin: actor.id,
           p: settingsSchema.parse(b.settings),
         }),
       );
@@ -402,7 +577,7 @@ Deno.serve(async (req) => {
     if (b.action === "admin-remove")
       return reply(
         await rpc("trail_admin_remove", {
-          p_admin: actor,
+          p_admin: actor.id,
           p_id: id,
           p_member: z.string().uuid().nullable().parse(b.member),
           p_restore: z.boolean().parse(b.restore),
@@ -411,18 +586,21 @@ Deno.serve(async (req) => {
     if (b.action === "admin-update")
       return reply(
         await rpc("trail_admin_update", {
-          p_admin: actor,
+          p_admin: actor.id,
           p_id: id,
           p_patch: patchSchema.parse(b.patch),
         }),
       );
     if (b.action === "admin-attend")
       return reply(
-        await rpc("trail_attend", {
-          p_admin: actor,
-          p_id: id,
-          p_ids: z.array(z.string().uuid()).min(1).max(4).parse(b.ids),
-        }),
+        teamForActor(
+          await rpc("trail_attend", {
+            p_admin: actor.id,
+            p_id: id,
+            p_ids: z.array(z.string().uuid()).min(1).max(4).parse(b.ids),
+          }),
+          actor,
+        ),
       );
     if (b.action === "admin-file") {
       const t = await getTeam(id);

@@ -109,7 +109,7 @@ No se inventan reglamentos, consentimientos ni datos del evento. Las versiones d
 
 ## Validación
 
-47 pruebas automáticas incluidas: reglas de equipos de exactamente cuatro personas, duplicados, consentimiento, CSV con ceros iniciales y protección contra fórmulas, precio validado en base, transacciones completas, reintentos sin duplicados, permisos para visitantes y usuarios comunes, autorización administrativa, auditoría, asistencia idempotente, cancelación, PDF con cuatro integrantes y QR, y paginación de la nómina. La base SQL se verifica con Postgres embebido (PGlite), con tablas de Auth y Storage de prueba; no sustituye la comprobación de los servicios reales de Supabase. También se comprobó el formulario en un navegador con pantalla de celular y se inspeccionó visualmente un PDF generado con datos ficticios.
+76 pruebas automáticas incluidas: reglas de equipos de exactamente cuatro personas, duplicados, consentimiento, CSV con ceros iniciales y protección contra fórmulas, precio validado en base, transacciones completas, reintentos sin duplicados, permisos para visitantes y usuarios comunes, autorización administrativa, auditoría, asistencia idempotente, cancelación, PDF con cuatro integrantes y QR, y paginación de la nómina. La base SQL se verifica con Postgres embebido (PGlite), con tablas de Auth y Storage de prueba; no sustituye la comprobación de los servicios reales de Supabase. También se comprobó el formulario en un navegador con pantalla de celular y se inspeccionó visualmente un PDF generado con datos ficticios.
 
 Antes de admitir participantes reales, verificar en el proyecto final:
 
@@ -138,3 +138,15 @@ Antes de admitir participantes reales, verificar en el proyecto final:
 - [Seguridad en Edge Functions](https://supabase.com/docs/guides/functions/auth)
 - [Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security)
 - [Recuperación de contraseñas](https://supabase.com/docs/reference/javascript/auth-resetpasswordforemail)
+
+## Usuarios y roles
+
+El superadministrador gestiona las cuentas desde Administración → Usuarios y roles. Puede invitar por correo, vincular una cuenta existente y cambiar su rol o suspender su acceso a este evento. Las invitaciones dependen del servicio de correo y los límites de Supabase. Cada persona define su contraseña; no se almacena ni muestra en el panel. Vincular una cuenta existente no cambia su contraseña ni sus otros accesos de Supabase.
+
+- Superadministrador: todas las funciones y gestión de usuarios.
+- Administrador: evento, equipos, pagos, asistencia y nómina.
+- Cobros: consulta de inscripciones y comprobantes de transferencia, y modificación del estado de pago.
+- Acreditación: búsqueda por QR/código y asistencia; sin nómina completa ni contactos o archivos de pago.
+- Consulta: consulta y descarga de nómina; sin modificaciones.
+
+Los permisos se consultan en la base privada en cada petición y las escrituras se comprueban también en SQL. Suspender un acceso impide la siguiente operación aunque el JWT siga vigente. No se usa user_metadata para autorizar. El superadministrador no puede cambiar su propio rol ni suspenderse. La migración inicial promueve únicamente la cuenta activa bymanky; los demás administradores existentes conservan el rol Administrador.
