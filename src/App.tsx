@@ -140,17 +140,15 @@ export default function App() {
         <Registration settings={settings} />
       ) : (
         <main>
-          <section className="hero">
+          <section className="hero hero-cover">
             <div className="hero-content">
               <div className="eyebrow">
                 <span className="live-dot" /> EMPRENDE CAMINO PRESENTA
               </div>
               <h1>
-                Un circuito.
+                Armá tu equipo.
                 <br />
-                Mil historias.
-                <br />
-                <em>Tu próximo límite.</em>
+                <em>Animate a la aventura.</em>
               </h1>
               <p className="hero-description">
                 5 km con obstáculos y polvos de colores para desafiarse
@@ -181,83 +179,9 @@ export default function App() {
                 </span>
               </div>
             </div>
-            <div
-              className="landscape"
-              role="img"
-              aria-label="Ilustración de un sendero entre cerros verdes al atardecer"
-            >
-              <div className="sun" />
-              <svg viewBox="0 0 760 740" preserveAspectRatio="xMidYMid slice">
-                <defs>
-                  <linearGradient id="sky" x2="0" y2="1">
-                    <stop stopColor="#a6beb1" />
-                    <stop offset="1" stopColor="#eadcb0" />
-                  </linearGradient>
-                  <linearGradient id="hill" x2=".6" y2="1">
-                    <stop stopColor="#4c7060" />
-                    <stop offset="1" stopColor="#1e4637" />
-                  </linearGradient>
-                  <linearGradient id="front" x2=".7" y2="1">
-                    <stop stopColor="#2f5740" />
-                    <stop offset="1" stopColor="#10372c" />
-                  </linearGradient>
-                </defs>
-                <path fill="url(#sky)" d="M0 0h760v740H0z" />
-                <circle cx="540" cy="157" r="67" fill="#f4e8b1" />
-                <path
-                  d="M0 335L110 260l105 50 150-125 120 103 92-63 183 124v391H0z"
-                  fill="#7b9580"
-                />
-                <path
-                  d="M0 435l160-132 107 65 112-53 132 97 147-67 102 70v325H0z"
-                  fill="url(#hill)"
-                />
-                <path d="M0 470q181-90 302-13t458-21v304H0z" fill="#64805a" />
-                <path
-                  d="M0 571q200-200 388-74t372-31v274H0z"
-                  fill="url(#front)"
-                />
-                <path
-                  d="M485 381c-120 68 110 71-32 136S196 634 393 740h151c-310-123 2-154 6-226s-164-73-65-133"
-                  fill="#d8c594"
-                />
-                <path
-                  d="M0 642q155-68 247-27L145 740H0zM760 523q-95 110-187 105l80 112h107z"
-                  fill="#143d2e"
-                />
-                <g fill="#163c2d">
-                  <path d="M96 405l-35 89h70zm-4 35-49 107h99zM660 370l-26 66h52zm0 28-36 82h72zM609 346l-18 54h38z" />
-                </g>
-                <g transform="translate(422 514) rotate(-9)">
-                  <circle cy="-39" r="8" fill="#f6dba6" />
-                  <path
-                    d="M-4-29l15 25-15 20-8-6 10-16-13-18z"
-                    fill="#e8ed8a"
-                  />
-                  <path
-                    d="M3-11l25 18-4 7L2 1m-6 14-10 25-7-3 8-28"
-                    fill="#1c302a"
-                  />
-                  <path
-                    d="M-9-23l-15 16-14-8m38-5 13 5 9-9"
-                    fill="none"
-                    stroke="#efc996"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                  />
-                </g>
-              </svg>
-              <div className="distance-badge">
-                <span>LA DISTANCIA ES SOLO EL COMIENZO</span>
-                <strong>
-                  5<span>KM</span>
-                </strong>
-                <span>EL RESTO LO VIVÍS VOS.</span>
-              </div>
-              <div className="image-caption">
-                <span className="live-dot" /> NATURALEZA. EQUIPO. AVENTURA.
-              </div>
-            </div>
+            <figure className="hero-cover-artwork">
+              <img src="./portada-camino-al-limite.jpeg" alt="Camino al Limite: armá tu equipo y animate a la aventura. Cuatro participantes recorren un sendero al atardecer. Colaboran Cintepa y Óptica Florida." width="1440" height="1080" fetchPriority="high" decoding="async" />
+            </figure>
           </section>
           <div className="ticker">
             <span>MUCHO MÁS QUE CORRER</span>
