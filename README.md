@@ -1,6 +1,6 @@
 # Camino al Limite
 
-Inscripciones del trail de 5 km en el marco de **Emprende Camino**, producido por **By Manky**. React + TypeScript + Vite, Supabase y GitHub Pages. Precio: **$300 UYU por persona**, de exactamente cuatro integrantes (**$1200 UYU por equipo**). Cupos limitados. Patrocina: Sociedad de Fomento de Flores.
+Inscripciones del trail de 5 km en el marco de **Emprende Camino**, producido por **By Manky**. React + TypeScript + Vite, Supabase y GitHub Pages. Precio: **$350 UYU por persona**, de exactamente cuatro integrantes (**$1400 UYU por equipo**). Cupos limitados. Patrocina: Sociedad de Fomento de Flores.
 
 ## Estado de entrega
 
@@ -109,7 +109,7 @@ No se inventan reglamentos, consentimientos ni datos del evento. Las versiones d
 
 ## Validación
 
-88 pruebas automáticas incluidas: reglas de equipos de exactamente cuatro personas, duplicados, consentimiento, CSV con ceros iniciales y protección contra fórmulas, precio validado en base, transacciones completas, reintentos sin duplicados, permisos para visitantes y usuarios comunes, autorización administrativa, auditoría, asistencia idempotente, cancelación, PDF con cuatro integrantes y QR, y paginación de la nómina. La base SQL se verifica con Postgres embebido (PGlite), con tablas de Auth y Storage de prueba; no sustituye la comprobación de los servicios reales de Supabase. También se comprobó el formulario en un navegador con pantalla de celular y se inspeccionó visualmente un PDF generado con datos ficticios.
+90 pruebas automáticas incluidas: reglas de equipos de exactamente cuatro personas, duplicados, consentimiento, CSV con ceros iniciales y protección contra fórmulas, precio validado en base, transacciones completas, reintentos sin duplicados, permisos para visitantes y usuarios comunes, autorización administrativa, auditoría, asistencia idempotente, cancelación, PDF con cuatro integrantes y QR, y paginación de la nómina. La base SQL se verifica con Postgres embebido (PGlite), con tablas de Auth y Storage de prueba; no sustituye la comprobación de los servicios reales de Supabase. También se comprobó el formulario en un navegador con pantalla de celular y se inspeccionó visualmente un PDF generado con datos ficticios.
 
 Antes de admitir participantes reales, verificar en el proyecto final:
 
@@ -152,3 +152,5 @@ El superadministrador gestiona las cuentas desde Administración → Usuarios y 
 Los permisos se consultan en la base privada en cada petición y las escrituras se comprueban también en SQL. Suspender un acceso impide la siguiente operación aunque el JWT siga vigente. No se usa user_metadata para autorizar. El superadministrador no puede cambiar su propio rol ni suspenderse. La migración inicial promueve únicamente la cuenta activa bymanky; los demás administradores existentes conservan el rol Administrador.
 
 Supabase Auth administra el hash de las contraseñas y las sesiones. Para cumplir su interfaz interna se genera un identificador técnico opaco bajo @camino-staff.invalid; no corresponde a un correo real ni recibe mensajes. El formulario, el acceso y la lista de usuarios utilizan nombres de usuario. Las contraseñas no se devuelven en las respuestas ni se guardan en el código o la lista. El alta se comprueba en el servidor y solo el superadministrador puede ejecutarla. Un reintento de alta incompleta exige la contraseña original y nunca reemplaza la de otra cuenta. Los enlaces antiguos de recuperación se conservan para cuentas anteriores; los usuarios locales sin acceso deben contactar al responsable.
+
+Cambio de tarifa: en instalaciones existentes, ejecutar supabase/sql/update_price_350.sql. Las inscripciones nuevas cuestan 1400 UYU por equipo; los importes anteriores se conservan. El comprobante calcula el precio por persona a partir del importe guardado.

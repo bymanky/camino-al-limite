@@ -35,7 +35,7 @@ const team: Team = {
   email: "test@example.com",
   phone: "099123456",
   method: "transferencia",
-  amount: 1200,
+  amount: 1400,
   payment: "pendiente",
   status: "activa",
   notes: "",
@@ -68,8 +68,8 @@ it(
     expect(text).toContain("CAL-PRUEBA");
     expect(text).toContain("Integrante 4 de prueba");
     expect(text).toContain("NO acredita el pago");
-    expect(text).toContain("$300 UYU por persona");
-    expect(text).toContain("Total del equipo: $1200 UYU");
+    expect(text).toContain("$350 UYU por persona");
+    expect(text).toContain("Total del equipo: $1400 UYU");
     expect(text).toContain("Patrocina");
     expect(text).toContain("Producido por");
     expect(text).toContain("En el marco de la feria");
@@ -128,3 +128,10 @@ it("la nómina agrega páginas y conserva todos los participantes", () => {
   expect(doc.output()).toContain("CAL-29");
 });
 afterAll(() => vi.unstubAllGlobals());
+
+it('conserva el precio del comprobante de una inscripción anterior',async()=>{
+ await receiptPdf({...team,amount:1200},'b'.repeat(64));
+ const text=captured.documents.at(-1).qaTexts.join('\n');
+ expect(text).toContain('$300 UYU por persona');
+ expect(text).toContain('Total del equipo: $1200 UYU');
+});

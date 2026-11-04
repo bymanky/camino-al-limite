@@ -59,13 +59,13 @@ async function register(
   return r.rows[0].id;
 }
 describe.sequential("Base de datos y permisos", () => {
-  it("guarda el equipo completo y fija el precio en 1200", async () => {
+  it("guarda el equipo completo y fija el precio en 1400", async () => {
     teamId = await register({ ...p, amount: 1 });
     const r = await db.query<{ data: any }>(
       "select public.trail_team($1) data",
       [teamId],
     );
-    expect(r.rows[0].data.amount).toBe(1200);
+    expect(r.rows[0].data.amount).toBe(1400);
     expect(r.rows[0].data.members).toHaveLength(4);
     memberId = r.rows[0].data.members[0].id;
   });
