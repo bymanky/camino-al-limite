@@ -69,6 +69,7 @@ export default function App() {
   const admin =
     route.startsWith("#/admin") ||
     new URLSearchParams(location.search).has("recovery");
+  const showFloatingRegistration = !admin && route !== "#/inscripcion" && !route.startsWith("#/comprobante/");
   return (
     <>
       <header className="header">
@@ -451,7 +452,7 @@ export default function App() {
           </section>
         </main>
       )}
-      <footer>
+      <footer className={showFloatingRegistration ? "with-floating-registration" : undefined}>
         <a className="brand" href="#/">
           <Mountain size={26} />
           <span>
@@ -474,6 +475,12 @@ export default function App() {
           <img src={`${import.meta.env.BASE_URL}logos/miyiton-transparent.png`} alt="MIYITON" width="46" height="40" loading="lazy" decoding="async" />
         </div>
       </footer>
+      {showFloatingRegistration && (
+        <aside className="floating-registration" aria-label="Inscribí tu equipo">
+          <div><strong>¡Sumá tu equipo!</strong><span>4 integrantes · $350 por persona</span></div>
+          <a className="button lime" href="#/inscripcion">Quiero ser parte <ArrowUpRight size={19} aria-hidden="true" /></a>
+        </aside>
+      )}
     </>
   );
 }

@@ -1510,3 +1510,16 @@ summary {
 .collaborators-artwork img { display: block; position: absolute; bottom: 0; left: 0; width: 100%; height: auto; max-width: none; }
 .poster-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 18px; color: #163e32; }
 @media (max-width: 600px) { .prize-grid { grid-template-columns: 1fr; } .prize-grid article { padding: 22px; } }
+
+.floating-registration { position: fixed; right: 24px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 50; display: flex; align-items: center; gap: 20px; padding: 14px 16px; max-width: calc(100vw - 48px); background: #163e32; color: #fff; border: 1px solid #355b4b; border-radius: 14px; box-shadow: 0 8px 28px #0c241e40; }
+.floating-registration > div { display: grid; gap: 4px; }
+.floating-registration > div > strong { font-size: 14px; }
+.floating-registration > div > span { font-size: 11px; color: #e4e9db; }
+.floating-registration .button { min-height: 48px; white-space: nowrap; }
+footer.with-floating-registration { padding-bottom: calc(135px + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 600px) {
+ .floating-registration { left: 0; right: 0; bottom: 0; max-width: none; gap: 10px; justify-content: space-between; border-radius: 14px 14px 0 0; padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px)); }
+ .floating-registration > div > strong { font-size: 12px; }
+ .floating-registration > div > span { font-size: 10px; max-width: 120px; line-height: 1.5; }
+ .floating-registration .button { padding: 12px 14px; font-size: 12px; gap: 8px; }
+}
