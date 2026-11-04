@@ -1542,3 +1542,30 @@ footer.with-floating-registration { padding-bottom: calc(135px + env(safe-area-i
   color: var(--green);
   border-color: var(--green);
 }
+
+.registration-deadline {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  max-width: 430px;
+  border: 1px solid #e8c799;
+  border-radius: 10px;
+  background: #fff2dd;
+  color: var(--green);
+}
+.registration-deadline > svg { flex: none; }
+.registration-deadline span { font-size: 13px; font-weight: 700; }
+.registration-deadline time { display: grid; gap: 4px; margin-top: 4px; }
+.registration-deadline strong { font-size: clamp(17px, 2.2vw, 23px); }
+.registration-deadline strong::first-letter { text-transform: uppercase; }
+.registration-deadline small { font-size: 13px; }
+.registration-entry { margin-top: 20px; }
+.registration-entry small + small { margin-top: 5px; }
+.registration-cta svg { transition: transform 150ms ease; }
+.registration-cta:hover svg, .registration-cta:focus-visible svg { transform: translateX(4px); }
+.registration-cta:active { filter: brightness(.9); }
+.steps { scroll-margin-top: 16px; }
+@media (prefers-reduced-motion: reduce) {
+  .registration-cta svg { transition: none; }
+}

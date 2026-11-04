@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense, type FormEvent } from "react";
+import { useEffect, useRef, useState, lazy, Suspense, type FormEvent } from "react";
 import {
   ArrowUpRight,
   ArrowRight,
@@ -46,6 +46,15 @@ const newDraft = (): Draft => ({
   idempotency: crypto.randomUUID(),
   website: "",
 });
+const eventDateFormat = new Intl.DateTimeFormat("es-UY", {
+  weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+});
+function eventDateLabel(value: string) {
+  const day = value.slice(0, 10);
+  const date = new Date(day + "T00:00:00Z");
+  return Number.isNaN(date.getTime()) ? "Próximamente" : eventDateFormat.format(date);
+}
+
 export default function App() {
   const [route, setRoute] = useState(location.hash);
   const [settings, setSettings] = useState<Settings>(initialSettings);
@@ -284,7 +293,7 @@ export default function App() {
                     FECHA Y HORA
                     <strong>
                       {settings.date
-                        ? `${settings.date} ${settings.time}`
+                        ? `${eventDateLabel(settings.date)}${settings.time ? " · " + settings.time.slice(0, 5) + " h" : ""}`
                         : "Próximamente"}
                     </strong>
                   </span>
@@ -305,7 +314,16 @@ export default function App() {
               </div>
               {settings.contact && <p>Consultas: {settings.contact}</p>}
               {settings.deadline && (
-                <p>Inscripciones hasta: {settings.deadline}</p>
+                <div className="registration-deadline">
+                  <CalendarDays size={24} aria-hidden="true" />
+                  <div>
+                    <span>Inscripciones hasta</span>
+                    <time dateTime={settings.deadline + "-03:00"}>
+                      <strong>{eventDateLabel(settings.deadline)}</strong>
+                      <small>{settings.deadline.slice(11, 16)} h · hora de Uruguay</small>
+                    </time>
+                  </div>
+                </div>
               )}
             </div>
             <div className="price-card">
@@ -327,10 +345,13 @@ export default function App() {
               <p>
                 <Check size={18} /> Premio a la vestimenta más divertida del equipo
               </p>
-              <a className="button lime full" href="#/inscripcion">
-                Quiero ser parte <ArrowUpRight size={19} />
-              </a>
-              <small>Pago presencial o transferencia bancaria</small>
+              <div className="registration-entry">
+                <a className="button lime full registration-cta" href="#/inscripcion" aria-describedby="registration-steps">
+                  Quiero ser parte <ArrowRight size={19} aria-hidden="true" />
+                </a>
+                <small id="registration-steps">Inscribí a tu equipo en 3 pasos</small>
+                <small>Pago presencial o transferencia bancaria</small>
+              </div>
             </div>
           </section>
           <section className="section collaborators" aria-labelledby="colaboradores-title">
@@ -402,7 +423,7 @@ export default function App() {
       {showFloatingRegistration && (
         <aside className="floating-registration" aria-label="Inscribí tu equipo">
           <div><strong>¡Sumá tu equipo!</strong><span>4 integrantes · $350 por persona</span></div>
-          <a className="button lime" href="#/inscripcion">Quiero ser parte <ArrowUpRight size={19} aria-hidden="true" /></a>
+          <a className="button lime registration-cta" href="#/inscripcion">Quiero ser parte <ArrowUpRight size={19} aria-hidden="true" /></a>
         </aside>
       )}
     </>
@@ -411,6 +432,12 @@ export default function App() {
 function Registration({ settings }: { settings: Settings }) {
   const [d, setD] = useState<Draft>(newDraft);
   const [step, setStep] = useState(0);
+  const registrationHeading = useRef<HTMLHeadingElement>(null);
+  const registrationSteps = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (step === 0) registrationHeading.current?.focus();
+    else registrationSteps.current?.focus();
+  }, [step]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -522,12 +549,13 @@ function Registration({ settings }: { settings: Settings }) {
         <ChevronLeft size={16} /> Volver al inicio
       </a>
       <div className="eyebrow green">TU PRÓXIMA HISTORIA EMPIEZA ACÁ</div>
-      <h1>Sumá tu equipo.</h1>
+      <h1 ref={registrationHeading} tabIndex={-1}>Sumá tu equipo.</h1>
       <p>4 integrantes por equipo · $350 UYU por persona. Cupos limitados.</p>
-      <div className="steps">
+      <div className="steps" ref={registrationSteps} tabIndex={-1} aria-label={`Paso ${step + 1} de 3`}>
         {["Tu equipo", "Integrantes", "Confirmación"].map((s, i) => (
           <span
             key={s}
+            aria-current={i === step ? "step" : undefined}
             className={i === step ? "current" : i < step ? "complete" : ""}
           >
             <b>{i < step ? <Check size={14} /> : i + 1}</b>
