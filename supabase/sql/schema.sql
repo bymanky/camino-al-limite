@@ -15,7 +15,7 @@ create table public.trail_teams (
  id uuid primary key default gen_random_uuid(), code text not null unique,
  team text not null check(length(team) between 2 and 80), responsible text not null check(length(responsible) between 3 and 100),
  phone text not null check(length(phone) between 7 and 30), email text not null check(length(email) between 3 and 150),
- method text not null check(method in ('ecos','fomento','transferencia')), amount int not null default 1200 check(amount=1200),
+ method text not null check(method in ('ecos','fomento','transferencia')), amount int not null default 1400 check(amount in (1200,1400)),
  payment text not null default 'pendiente' check(payment in ('pendiente','en_revision','confirmado')),
  status text not null default 'activa' check(status in ('activa','cancelada')), notes text not null default '',
  deleted_at timestamptz, receipt_path text, created_at timestamptz not null default now(), accepted_at timestamptz not null default now(),

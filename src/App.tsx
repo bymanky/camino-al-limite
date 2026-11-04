@@ -375,9 +375,9 @@ export default function App() {
             <div className="price-card">
               <span className="pill">UNA INSCRIPCIÓN. TODO EL EQUIPO.</span>
               <div className="price">
-                $300<span>UYU / persona</span>
+                $350<span>UYU / persona</span>
               </div>
-              <p>4 integrantes por equipo · Total: $1200 UYU</p>
+              <p>4 integrantes por equipo · Total: $1400 UYU</p>
               <p>
                 <strong>Cupos limitados</strong> · Trail de 5 km
               </p>
@@ -572,7 +572,7 @@ function Registration({ settings }: { settings: Settings }) {
       </a>
       <div className="eyebrow green">TU PRÓXIMA HISTORIA EMPIEZA ACÁ</div>
       <h1>Sumá tu equipo.</h1>
-      <p>4 integrantes por equipo · $300 UYU por persona. Cupos limitados.</p>
+      <p>4 integrantes por equipo · $350 UYU por persona. Cupos limitados.</p>
       <div className="steps">
         {["Tu equipo", "Integrantes", "Confirmación"].map((s, i) => (
           <span
@@ -745,7 +745,7 @@ function Registration({ settings }: { settings: Settings }) {
               ))}
               <hr />
               <strong>
-                $300 UYU por persona · 4 integrantes · Total por equipo: $1200
+                $350 UYU por persona · 4 integrantes · Total por equipo: $1400
                 UYU
               </strong>
             </div>
@@ -784,7 +784,7 @@ function Registration({ settings }: { settings: Settings }) {
               </div>
             ) : (
               <p>
-                Aboná $300 por persona ($1200 por equipo) en{" "}
+                Aboná $350 por persona ($1400 por equipo) en{" "}
                 {d.method === "ecos"
                   ? "Ecos Regionales"
                   : "Sociedad de Fomento de Flores"}
