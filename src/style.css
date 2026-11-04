@@ -1505,3 +1505,17 @@ footer.with-floating-registration { padding-bottom: calc(135px + env(safe-area-i
 .hero-footer .brand-logo-miyiton { width: 84px; height: 66px; padding: 5px; }
 .footer-brands .brand-logo-miyiton { width: 110px; height: 88px; padding: 6px; }
 @media (max-width: 700px) { .event-brand .brand-logo-miyiton { width: 124px; height: 100px; } .hero-footer .brand-logo-miyiton { width: 70px; height: 56px; } .footer-brands .brand-logo-miyiton { width: 90px; height: 72px; } }
+
+.production-logos { display: flex; align-items: center; justify-content: center; gap: 16px; max-width: 100%; }
+.event-brand .production-logos .brand-logo-manky { width: 110px; height: 125px; }
+.event-brand .production-logos .brand-logo-miyiton { width: 145px; height: 120px; }
+.footer-brands .production-logos { gap: 12px; }
+.hero-footer .production-logos { gap: 10px; }
+@media (max-width: 700px) {
+ .event-brand .production-logos { gap: 10px; }
+ .event-brand .production-logos .brand-logo-manky { width: 58px; height: 70px; }
+ .event-brand .production-logos .brand-logo-miyiton { width: 72px; height: 62px; }
+ .footer-brands .production-logos { gap: 8px; }
+ .footer-brands .production-logos .brand-logo-manky { width: 44px; height: 52px; }
+ .footer-brands .production-logos .brand-logo-miyiton { width: 65px; height: 55px; }
+}
