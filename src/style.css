@@ -1499,3 +1499,9 @@ footer.with-floating-registration { padding-bottom: calc(135px + env(safe-area-i
 }
 
 @media (min-width: 761px) { .floating-registration { left: 24px; right: auto; } }
+
+.brand-logo-miyiton { background: #073c1b; border-radius: 8px; padding: 8px; object-fit: contain; }
+.event-brand .brand-logo-miyiton { width: 180px; height: 145px; }
+.hero-footer .brand-logo-miyiton { width: 84px; height: 66px; padding: 5px; }
+.footer-brands .brand-logo-miyiton { width: 110px; height: 88px; padding: 6px; }
+@media (max-width: 700px) { .event-brand .brand-logo-miyiton { width: 124px; height: 100px; } .hero-footer .brand-logo-miyiton { width: 70px; height: 56px; } .footer-brands .brand-logo-miyiton { width: 90px; height: 72px; } }

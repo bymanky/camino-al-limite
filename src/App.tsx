@@ -175,7 +175,7 @@ export default function App() {
                 <i />
                 <span>
                   PRODUCE{" "}
-                  <BrandLogo brand="manky" className="hero-producer-logo" />
+                  <BrandLogo brand="miyiton" className="hero-producer-logo" />
                 </span>
               </div>
             </div>
@@ -203,7 +203,7 @@ export default function App() {
             </div>
             <div className="event-brand">
               <span>Producido por</span>
-              <BrandLogo brand="manky" />
+              <BrandLogo brand="miyiton" />
             </div>
             <div className="event-brand">
               <span>Patrocina</span>
@@ -387,7 +387,7 @@ export default function App() {
         <div className="footer-brands">
           <div>
             <span>Producido por</span>
-            <BrandLogo brand="manky" />
+            <BrandLogo brand="miyiton" />
           </div>
           <div>
             <span>En el marco de</span>

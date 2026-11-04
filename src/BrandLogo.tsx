@@ -1,4 +1,5 @@
 export const brandLogos = {
+  miyiton: { file: "miyiton-transparent.png", alt: "MIYITON" },
   manky: { file: "by-manky.png", alt: "By Manky" },
   emprende: { file: "emprende-camino.png", alt: "Emprende Camino" },
   fomento: {
