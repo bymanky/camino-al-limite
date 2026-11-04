@@ -152,8 +152,8 @@ export default function App() {
                 <em>Tu próximo límite.</em>
               </h1>
               <p className="hero-description">
-                5 km para salir de la rutina, compartir en equipo
-                <br className="desktop" /> y vivir mucho más que una carrera.
+                5 km con obstáculos y polvos de colores para desafiarse
+                <br className="desktop" /> y divertirse en equipos de cuatro personas.
               </p>
               <div className="hero-actions">
                 <a className="button lime" href="#/inscripcion">
@@ -312,14 +312,14 @@ export default function App() {
                 [
                   Sparkles,
                   "02",
-                  "Sorpresas en el camino",
-                  "Sorteos y muchas experiencias en un solo circuito.",
+                  "Obstáculos y colores",
+                  "Un trail con obstáculos y polvos de colores para desafiarse y divertirse. Sorteos y muchas experiencias en un solo circuito.",
                 ],
                 [
                   Shirt,
                   "03",
                   "Que se note tu estilo",
-                  "Premio a la vestimenta más alocada. ¡Animate a salir de lo común!",
+                  "Premios para la vestimenta más divertida del equipo. ¡Animate a salir de lo común!",
                 ],
               ].map(([Icon, n, title, text]) => (
                 <article className="experience-card" key={String(n)}>
@@ -332,6 +332,17 @@ export default function App() {
                 </article>
               ))}
             </div>
+          </section>
+          <section className="section event-prizes" aria-labelledby="premios-title">
+            <div className="eyebrow green">ARMÁ TU EQUIPO Y ANIMATE A LA AVENTURA</div>
+            <h2 id="premios-title">Más motivos para vivirlo juntos.</h2>
+            <p>Además de los premios a la vestimenta más divertida del equipo:</p>
+            <div className="prize-grid">
+              <article><span>Premio Cintepa</span><strong>$6.500</strong><p>Para un equipo.</p></article>
+              <article><span>Premio Óptica Florida</span><strong>$4.500</strong><p>Para otro equipo.</p></article>
+            </div>
+            <p className="registration-announcement"><strong>Inscripciones desde el 4 de noviembre</strong> por esta web, en oficinas de Sociedad de Fomento de Flores o en Ecos Regionales.</p>
+            <p>Nos encontramos el <strong>12 de diciembre</strong>, en el marco de <strong>Emprende Camino</strong>.</p>
           </section>
           <section className="info-section" id="informacion">
             <div>
@@ -389,13 +400,22 @@ export default function App() {
                 <Check size={18} /> Sorteos y experiencias
               </p>
               <p>
-                <Check size={18} /> Premio a la vestimenta más alocada
+                <Check size={18} /> Premio a la vestimenta más divertida del equipo
               </p>
               <a className="button lime full" href="#/inscripcion">
                 Quiero ser parte <ArrowUpRight size={19} />
               </a>
               <small>Pago presencial o transferencia bancaria</small>
             </div>
+          </section>
+          <section className="section collaborators" aria-labelledby="colaboradores-title">
+            <div className="eyebrow green">NOS ACOMPAÑAN</div>
+            <h2 id="colaboradores-title">Colaboran</h2>
+            <p>Cintepa · Tu Cooperativa y Óptica Florida.</p>
+            <div className="collaborators-artwork">
+              <img src="./placa-camino-al-limite.jpeg" alt="Logos originales de los colaboradores Cintepa, Tu Cooperativa, y Óptica Florida" width="1280" height="1600" loading="lazy" />
+            </div>
+            <a className="poster-link" href="./placa-camino-al-limite.jpeg" target="_blank" rel="noopener noreferrer">Ver la placa oficial completa <ArrowUpRight size={16} /></a>
           </section>
           {loadError && (
             <div className="notice error" role="alert">

@@ -1496,3 +1496,17 @@ summary {
     grid-template-columns: 1fr;
   }
 }
+
+.event-prizes { background: #f3f4e9; }
+.event-prizes h2, .collaborators h2 { font-size: clamp(28px, 4vw, 42px); margin: 16px 0; }
+.event-prizes > p, .collaborators > p { line-height: 1.7; color: #465b4e; }
+.prize-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; margin: 28px 0; }
+.prize-grid article { padding: 28px; background: #163e32; border-radius: 8px; color: #fff; }
+.prize-grid article > span { display: block; font-weight: 600; }
+.prize-grid strong { display: block; font-size: clamp(36px,5vw,60px); color: #e4ed9d; margin-top: 12px; }
+.prize-grid article p { margin-bottom: 0; }
+.registration-announcement { max-width: 760px; }
+.collaborators-artwork { position: relative; aspect-ratio: 1280 / 220; overflow: hidden; border-radius: 8px; margin-top: 24px; }
+.collaborators-artwork img { display: block; position: absolute; bottom: 0; left: 0; width: 100%; height: auto; max-width: none; }
+.poster-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 18px; color: #163e32; }
+@media (max-width: 600px) { .prize-grid { grid-template-columns: 1fr; } .prize-grid article { padding: 22px; } }
