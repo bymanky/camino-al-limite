@@ -12,6 +12,8 @@ import {
   Pencil,
   Trash2,
   RotateCcw,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { api, supabase, configured } from "./api";
 import {
@@ -35,6 +37,8 @@ export default function Admin() {
   const [checking, setChecking] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [recovering, setRecovering] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -121,6 +125,23 @@ export default function Admin() {
       await load();
     });
   }
+  async function recoverPassword(e: FormEvent) {
+    e.preventDefault();
+    await run(async () => {
+      await api("recovery", {
+        username: username.trim(),
+        redirect: "https://caminoallimite.com/?recovery=1",
+      });
+      setNotice("Si tu usuario tiene un correo asociado y el envío está disponible, recibirás un enlace de recuperación. Revisá también spam.");
+    });
+  }
+  function toggleRecovery() {
+    setRecovering(!recovering);
+    setPassword("");
+    setShowPassword(false);
+    setError("");
+    setNotice("");
+  }
   async function update(patch: Record<string, unknown>) {
     await run(async () => {
       const t = await api<Team>("admin-update", { id: selected!.id, patch });
@@ -206,14 +227,14 @@ export default function Admin() {
     return (
       <main className="form-shell login">
         <div className="eyebrow green">ESPACIO DE ORGANIZACIÓN</div>
-        <h1>Administración.</h1>
-        <p>Ingresá con tu usuario y contraseña.</p>
+        <h1>{recovering ? "Recuperar contraseña" : "Administración."}</h1>
+        <p>{recovering ? "Ingresá tu nombre de usuario para solicitar un enlace de recuperación." : "Ingresá con tu usuario y contraseña."}</p>
         {!configured && (
           <div className="notice">
             El acceso estará disponible cuando se conecte Supabase.
           </div>
         )}
-        <form onSubmit={login}>
+        <form onSubmit={recovering ? recoverPassword : login}>
           <label>
             Nombre de usuario
             <input
@@ -223,25 +244,38 @@ export default function Admin() {
               onChange={(e) => setUsername(e.target.value)}
             />
           </label>
-          <label>
-            Contraseña
-            <input
-              required
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
+          {!recovering && (
+            <div className="login-password">
+              <label htmlFor="admin-password">Contraseña</label>
+              <div className="login-password-field">
+                <input
+                  id="admin-password"
+                  required
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="login-password-toggle"
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  aria-controls="admin-password"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
+                </button>
+              </div>
+            </div>
+          )}
           {alerts}
           <button className="button full" disabled={busy || !configured}>
-            {" "}
-            {busy ? "Ingresando…" : "Ingresar"}
+            {recovering ? (busy ? "Solicitando…" : "Solicitar enlace") : (busy ? "Ingresando…" : "Ingresar")}
           </button>
-          <p className="muted">
-            Si olvidaste tu contraseña, contactá al responsable de la
-            organización.
-          </p>
+          <button type="button" className="button full login-recovery" disabled={busy} onClick={toggleRecovery}>
+            {recovering ? "Volver al inicio de sesión" : "Recuperar contraseña"}
+          </button>
+          {recovering && <p className="muted">Si tu usuario se creó sin correo, contactá al responsable de la organización.</p>}
         </form>
       </main>
     );

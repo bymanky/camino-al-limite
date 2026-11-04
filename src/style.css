@@ -1519,3 +1519,26 @@ footer.with-floating-registration { padding-bottom: calc(135px + env(safe-area-i
  .footer-brands .production-logos .brand-logo-manky { width: 44px; height: 52px; }
  .footer-brands .production-logos .brand-logo-miyiton { width: 65px; height: 55px; }
 }
+
+.login-password-field {
+  position: relative;
+}
+.login-password-field input {
+  padding-right: 52px;
+}
+.login-password-toggle {
+  position: absolute;
+  inset: 0 3px 0 auto;
+  width: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--green);
+}
+.login .login-recovery {
+  margin-top: 12px;
+  background: transparent;
+  color: var(--green);
+  border-color: var(--green);
+}
