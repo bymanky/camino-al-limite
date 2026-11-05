@@ -80,7 +80,8 @@ export default function App() {
   const admin =
     route.startsWith("#/admin") ||
     new URLSearchParams(location.search).has("recovery");
-  const showFloatingRegistration = !admin && route !== "#/inscripcion" && !route.startsWith("#/comprobante/");
+  const recoveringReceipt = route === "#/recuperar-comprobante";
+  const showFloatingRegistration = !admin && !recoveringReceipt && route !== "#/inscripcion" && !route.startsWith("#/comprobante/");
   return (
     <>
       <header className="header">
@@ -122,6 +123,7 @@ export default function App() {
           >
             Información
           </a>
+          <a href="#/recuperar-comprobante">Recuperar comprobante</a>
           <a className="admin-link" href="#/admin">
             <LockKeyhole size={14} /> Administración
           </a>
@@ -145,6 +147,8 @@ export default function App() {
         >
           <Admin />
         </Suspense>
+      ) : recoveringReceipt ? (
+        <ReceiptRecovery contact={settings.contact} />
       ) : route.startsWith("#/comprobante/") ? (
         <Receipt token={route.split("/")[2]} />
       ) : route === "#/inscripcion" ? (
@@ -352,6 +356,9 @@ export default function App() {
                 </p>
               </div>
               {settings.contact && <p>Consultas: {settings.contact}</p>}
+              <a className="text-button" href="#/recuperar-comprobante">
+                <Download size={16} aria-hidden="true" /> Recuperar comprobante de inscripción
+              </a>
               {settings.deadline && (
                 <div className="registration-deadline">
                   <CalendarDays size={24} aria-hidden="true" />
@@ -947,6 +954,51 @@ function Registration({ settings }: { settings: Settings }) {
           </button>
         </div>
       </form>
+    </main>
+  );
+}
+function ReceiptRecovery({ contact }: { contact: string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function recover(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const fields = new FormData(event.currentTarget);
+    setError("");
+    setBusy(true);
+    try {
+      const { token } = await api<{ token: string }>("receipt-recovery", {
+        code: String(fields.get("code") ?? "").trim(),
+        email: String(fields.get("email") ?? "").trim(),
+      });
+      location.replace(receiptLink(token));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <main className="form-shell">
+      <div className="eyebrow green">INSCRIPCIÓN DEL EQUIPO</div>
+      <h1>Recuperar comprobante</h1>
+      <p>Ingresá el código de inscripción y el correo que usó la persona responsable del equipo.</p>
+      <form className="admin-panel" onSubmit={recover}>
+        <label>
+          Código de inscripción
+          <input name="code" required placeholder="CAL-…" autoCapitalize="characters"
+            autoComplete="off" spellCheck={false} maxLength={19} pattern="[Cc][Aa][Ll]-[0-9a-fA-F]{16}"
+            title="Ingresá CAL- seguido de los 16 caracteres del código." />
+        </label>
+        <label>
+          Correo del responsable
+          <input name="email" type="email" required autoComplete="email" maxLength={150} />
+        </label>
+        {error && <p className="notice error" role="alert">{error}</p>}
+        <button className="button" type="submit" disabled={busy}>
+          {busy ? "Buscando…" : "Buscar mi comprobante"}
+        </button>
+      </form>
+      <p><strong>¿También perdiste el código?</strong> Contactá a la organización con el nombre del equipo{contact ? " al " + contact : ""}.</p>
     </main>
   );
 }

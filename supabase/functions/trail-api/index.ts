@@ -418,6 +418,21 @@ Deno.serve(async (req) => {
         warning,
       });
     }
+    if (b.action === "receipt-recovery") {
+      await limited(req, "receipt-recovery", 8);
+      const { code, email } = z.object({
+        code: z.string().trim().toUpperCase().regex(/^CAL-[A-F0-9]{16}$/),
+        email: z.string().trim().toLowerCase().email().max(150),
+      }).parse(b);
+      const id = await rpc("trail_lookup", { p_code: code, p_hash: "" });
+      const team = id ? await getTeam(id) : null;
+      const seed = team?.email?.trim().toLowerCase() === email
+        ? await rpc("trail_receipt_seed", { p_id: id })
+        : null;
+      if (!seed)
+        throw new SafeError("No encontramos un comprobante con ese código y correo.", 404);
+      return reply({ token: await token("receipt", seed) });
+    }
     if (b.action === "receipt") {
       await limited(req, "receipt", 60);
       const receipt = z
