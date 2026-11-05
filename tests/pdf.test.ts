@@ -71,10 +71,13 @@ it(
     expect(text).toContain("$350 UYU por persona");
     expect(text).toContain("Total del equipo: $1400 UYU");
     expect(text).toContain("Patrocina");
-    expect(text).toContain("Producido por");
+    expect(doc.qaTexts.filter((line: string) => line === "Producido por")).toHaveLength(2);
+    expect(text).toContain("MIYITON");
+    expect(text).toContain("OBLIGATORIO EL DÍA DE LA CARRERA");
+    expect(text).toContain("Presentá este comprobante y la cédula de\nidentidad física de cada integrante.");
     expect(text).toContain("En el marco de la feria");
     expect(Object.keys(doc.internal.collections.addImage_images)).toHaveLength(
-      4,
+      5,
     );
     expect(pdf).toContain("Atkinson");
     expect(pdf).toContain("/Subtype /Image");
