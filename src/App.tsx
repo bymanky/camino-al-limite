@@ -269,6 +269,43 @@ export default function App() {
               ))}
             </div>
           </section>
+          <section className="section race-tips" aria-labelledby="race-tips-title">
+            <div className="eyebrow green">GUÍA DEL EQUIPO</div>
+            <h2 id="race-tips-title">Antes y después del trail</h2>
+            <p>Tocá cada consejo para preparar la salida y disfrutar la llegada.</p>
+            <div className="race-tips-grid">
+              {[
+                {
+                  title: "Antes de largar",
+                  icon: Mountain,
+                  tips: [
+                    ["Dejá pronto tu equipo", "Prepará el calzado que ya usás, ropa cómoda que pueda mancharse y una botella de agua. Llevá tu cédula física."],
+                    ["Acordá el punto de encuentro", "Confirmá el lugar y la hora de largada con los cuatro integrantes. Lleguen con margen para acreditarse y guardar sus cosas."],
+                    ["Arranquen juntos", "Acuerden un ritmo que todos puedan seguir y escuchen las indicaciones de la organización antes de entrar al circuito."],
+                  ],
+                },
+                {
+                  title: "Después de cruzar la meta",
+                  icon: Medal,
+                  tips: [
+                    ["Bajá el ritmo", "Caminá un rato, tomá agua y buscá un lugar tranquilo para descansar con tu equipo."],
+                    ["Llevá una muda", "Una camiseta y medias de repuesto te ayudan a seguir disfrutando la feria después del barro y los colores."],
+                    ["Celebren la llegada", "Reúnan al equipo, disfruten su medalla finisher y saquen la foto del recuerdo. Consulten en el lugar por los sorteos y premios."],
+                  ],
+                },
+              ].map(({ title, icon: Icon, tips }) => (
+                <article className="race-tips-card" key={title}>
+                  <h3><Icon size={24} aria-hidden="true" />{title}</h3>
+                  {tips.map(([label, detail]) => (
+                    <details key={label}>
+                      <summary>{label}<span aria-hidden="true">+</span></summary>
+                      <p>{detail}</p>
+                    </details>
+                  ))}
+                </article>
+              ))}
+            </div>
+          </section>
           <section className="section event-prizes" aria-labelledby="premios-title">
             <div className="eyebrow green">ARMÁ TU EQUIPO Y ANIMATE A LA AVENTURA</div>
             <h2 id="premios-title">Más motivos para vivirlo juntos.</h2>
