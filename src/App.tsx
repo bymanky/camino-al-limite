@@ -356,11 +356,6 @@ export default function App() {
               </div>
             </div>
           </section>
-          <div className="event-share">
-            <a className="button outline" href={`https://wa.me/?text=${encodeURIComponent("¡Sumate a Camino al Limite! https://caminoallimite.com/")}`} target="_blank" rel="noopener noreferrer">
-              <Share2 size={17} aria-hidden="true" /> Compartir por WhatsApp
-            </a>
-          </div>
           <section className="section collaborators" aria-labelledby="colaboradores-title">
             <div className="eyebrow green">NOS ACOMPAÑAN</div>
             <h2 id="colaboradores-title">Colaboran</h2>
@@ -427,6 +422,17 @@ export default function App() {
           <img src={`${import.meta.env.BASE_URL}logos/miyiton-transparent.png`} alt="MIYITON" width="46" height="40" loading="lazy" decoding="async" />
         </div>
       </footer>
+      {!admin && !route.startsWith("#/comprobante/") && (
+        <a
+          className={showFloatingRegistration ? "whatsapp-float above-registration" : "whatsapp-float"}
+          href={`https://wa.me/?text=${encodeURIComponent("🏃 Camino al Limite · Trail 5K\nArmá tu equipo de 4 y animate a los obstáculos, los polvos de colores y los premios. ¡Cupos limitados!\n\nhttps://caminoallimite.com/")}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Compartir Camino al Limite por WhatsApp"
+        >
+          <Share2 size={19} aria-hidden="true" /> Compartir por WhatsApp
+        </a>
+      )}
       {showFloatingRegistration && (
         <aside className="floating-registration" aria-label="Inscribí tu equipo">
           <div><strong>¡Sumá tu equipo!</strong><span>4 integrantes · $350 por persona</span></div>
