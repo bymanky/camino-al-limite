@@ -466,7 +466,7 @@ export default function App() {
           <img src={`${import.meta.env.BASE_URL}logos/miyiton-transparent.png`} alt="MIYITON" width="46" height="40" loading="lazy" decoding="async" />
         </div>
       </footer>
-      {!admin && !route.startsWith("#/comprobante/") && (
+      {!admin && !recoveringReceipt && !route.startsWith("#/comprobante/") && (
         <a
           className={showFloatingRegistration ? "whatsapp-float above-registration" : "whatsapp-float"}
           href={`https://wa.me/?text=${encodeURIComponent("🏃 Camino al Limite · Trail 5K\nArmá tu equipo de 4 y animate a los obstáculos, los polvos de colores y los premios. ¡Cupos limitados!\n\nhttps://caminoallimite.com/")}`}
@@ -960,6 +960,7 @@ function Registration({ settings }: { settings: Settings }) {
 function ReceiptRecovery({ contact }: { contact: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [invalidCode, setInvalidCode] = useState(false);
   const contactDigits = contact.replace(/\D/g, "");
   const whatsappNumber = /^0\d{8}$/.test(contactDigits)
     ? "598" + contactDigits.slice(1)
@@ -967,52 +968,79 @@ function ReceiptRecovery({ contact }: { contact: string }) {
   async function recover(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
+    const code = String(fields.get("code") ?? "").toUpperCase().replace(/\s/g, "").replace(/^CAL-?/, "");
+    if (!/^[A-F0-9]{16}$/.test(code)) {
+      setInvalidCode(true);
+      setError("Revisá el código. Debe tener 16 caracteres después de CAL-.");
+      event.currentTarget.querySelector<HTMLInputElement>('input[name="code"]')?.focus();
+      return;
+    }
+    setInvalidCode(false);
     setError("");
     setBusy(true);
     try {
       const { token } = await api<{ token: string }>("receipt-recovery", {
-        code: String(fields.get("code") ?? "").trim(),
+        code: "CAL-" + code,
         email: String(fields.get("email") ?? "").trim(),
       });
       location.replace(receiptLink(token));
     } catch (e) {
-      setError((e as Error).message);
+      const message = (e as Error).message;
+      setError(message === "No encontramos un comprobante con ese código y correo."
+        ? "No encontramos tu comprobante. Revisá el código y el correo. Si necesitás ayuda, escribinos por WhatsApp."
+        : message);
     } finally {
       setBusy(false);
     }
   }
   return (
-    <main className="form-shell">
+    <main className="form-shell receipt-recovery">
+      <a className="back" href="#/"><ChevronLeft size={16} aria-hidden="true" /> Volver al inicio</a>
       <div className="eyebrow green">INSCRIPCIÓN DEL EQUIPO</div>
       <h1>Recuperar comprobante</h1>
-      <p>Ingresá el código de inscripción y el correo que usó la persona responsable del equipo.</p>
-      <form className="admin-panel" onSubmit={recover}>
+      <p>Volvé a descargar el PDF de tu equipo o pedinos ayuda para encontrarlo.</p>
+      <form className="receipt-recovery-card" onSubmit={recover} aria-labelledby="recovery-form-title" aria-busy={busy}>
+        <h2 id="recovery-form-title">Tengo el código</h2>
         <label>
           Código de inscripción
-          <input name="code" required placeholder="CAL-…" autoCapitalize="characters"
-            autoComplete="off" spellCheck={false} maxLength={19} pattern="[Cc][Aa][Ll]-[0-9a-fA-F]{16}"
-            title="Ingresá CAL- seguido de los 16 caracteres del código." />
+          <input name="code" required placeholder="Ej. CAL-1A2B3C4D5E6F7890" autoCapitalize="characters"
+            autoComplete="off" spellCheck={false} maxLength={40}
+            aria-describedby={invalidCode ? "recovery-code-help recovery-error" : "recovery-code-help"}
+            aria-invalid={invalidCode}
+            onChange={() => {
+              if (invalidCode) {
+                setInvalidCode(false);
+                setError("");
+              }
+            }} />
+          <small id="recovery-code-help">Es el código que apareció al confirmar la inscripción. Podés pegarlo con o sin CAL-.</small>
         </label>
         <label>
           Correo del responsable
-          <input name="email" type="email" required autoComplete="email" maxLength={150} />
+          <input name="email" type="email" required autoComplete="email" maxLength={150}
+            placeholder="nombre@correo.com" aria-describedby="recovery-email-help" />
+          <small id="recovery-email-help">Usá el mismo correo que ingresaron al inscribir al equipo.</small>
         </label>
-        {error && <p className="notice error" role="alert">{error}</p>}
+        {error && <p id="recovery-error" className="notice error" role="alert">{error}</p>}
         <button className="button" type="submit" disabled={busy}>
+          <Download size={18} aria-hidden="true" />
           {busy ? "Buscando…" : "Buscar mi comprobante"}
         </button>
       </form>
-      <p><strong>¿También perdiste el código?</strong> Contactá a la organización con el nombre del equipo.</p>
-      {whatsappNumber && (
-        <a
-          className="button outline"
-          href={`https://wa.me/${whatsappNumber}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Contactar por WhatsApp <ArrowUpRight size={16} aria-hidden="true" />
-        </a>
-      )}
+      <section className="receipt-recovery-card receipt-recovery-help" aria-labelledby="recovery-help-title">
+        <h2 id="recovery-help-title">No tengo el código</h2>
+        <p>Escribinos con el nombre de tu equipo y te ayudamos a encontrar el comprobante.</p>
+        {whatsappNumber && (
+          <a
+            className="button outline"
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent("Hola, necesito recuperar el comprobante de Camino al Límite. Mi equipo se llama ")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Contactar por WhatsApp <ArrowUpRight size={16} aria-hidden="true" />
+          </a>
+        )}
+      </section>
     </main>
   );
 }
