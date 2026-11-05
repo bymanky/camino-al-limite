@@ -51,6 +51,7 @@ const settingsSchema = z.object({
   waiver: z.string().max(40000).optional(),
   requirements_enabled: z.boolean().optional(),
   remove_rules_pdf: z.boolean().optional(),
+  remove_waiver_file: z.boolean().optional(),
   open: z.boolean(),
   min_members: z.literal(4),
 });
@@ -298,10 +299,10 @@ Deno.serve(async (req) => {
   if (origin && !origins.includes(origin))
     return reply({ error: "Origen no autorizado" }, 403);
   try {
-    if (Number(req.headers.get("content-length") || 0) > 13000000)
+    if (Number(req.headers.get("content-length") || 0) > 15000000)
       throw new SafeError("Archivo demasiado grande", 413);
     const raw = await req.text();
-    if (raw.length > 13000000)
+    if (raw.length > 15000000)
       throw new SafeError("Archivo demasiado grande", 413);
     const b = JSON.parse(raw);
     if (b.action === "settings") {
@@ -311,8 +312,14 @@ Deno.serve(async (req) => {
         .eq("id", 1)
         .single();
       if (error) throw error;
-      const { terms, waiver, ...settings } = data;
-      return reply(settings.requirements_enabled ? { ...settings, terms, waiver } : settings);
+      const { terms, waiver, waiver_file_id, ...settings } = data;
+      return reply(settings.requirements_enabled ? { ...settings, terms, waiver, waiver_file_id } : settings);
+    }
+    if (b.action === "waiver-file") {
+      await limited(req, "waiver-file", 40);
+      const document = await rpc("trail_public_waiver_file", { p_file: z.string().uuid().parse(b.id) });
+      if (!document) throw new SafeError("El deslinde cambió. Actualizá la página", 404);
+      return reply(document);
     }
     if (b.action === "rules-pdf") {
       await limited(req, "rules-pdf", 40);
@@ -640,10 +647,15 @@ Deno.serve(async (req) => {
     if (b.action === "admin-settings") {
       const settings = settingsSchema.parse(b.settings);
       const pdf = fileBytes(b.rulesPdf);
+      const waiverFile = fileBytes(b.waiverFile);
       if (pdf && pdf.type !== "application/pdf") throw new SafeError("El reglamento debe ser PDF");
       return reply(await rpc("trail_settings_update", {
         p_admin: actor.id,
-        p: { ...settings, ...(pdf ? { rules_pdf: b.rulesPdf.data } : {}) },
+        p: {
+          ...settings,
+          ...(pdf ? { rules_pdf: b.rulesPdf.data } : {}),
+          ...(waiverFile ? { waiver_file: { mime: waiverFile.type, data: b.waiverFile.data } } : {}),
+        },
       }));
     }
     if (b.action === "admin-health-document") {

@@ -46,6 +46,8 @@ export default function Admin() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [settings, setSettings] = useState<Settings>(initialSettings);
   const [rulesPdf, setRulesPdf] = useState<File | null>(null);
+  const [waiverFile, setWaiverFile] = useState<File | null>(null);
+  const [removeWaiverFile, setRemoveWaiverFile] = useState(false);
   const [removeRulesPdf, setRemoveRulesPdf] = useState(false);
   const [tab, setTab] = useState("teams");
   const [query, setQuery] = useState("");
@@ -471,12 +473,19 @@ export default function Admin() {
             e.preventDefault();
             run(async () => {
               const saved = await api<Settings>("admin-settings", {
-                settings: { ...settings, remove_rules_pdf: removeRulesPdf },
+                settings: {
+                  ...settings,
+                  remove_rules_pdf: removeRulesPdf,
+                  remove_waiver_file: removeWaiverFile,
+                },
                 rulesPdf: rulesPdf ? await readRegistrationFile(rulesPdf, 5242880) : null,
+                waiverFile: waiverFile ? await readRegistrationFile(waiverFile, 5242880) : null,
               });
               setSettings(saved);
               setRulesPdf(null);
               setRemoveRulesPdf(false);
+              setWaiverFile(null);
+              setRemoveWaiverFile(false);
               setNotice("Configuración guardada.");
             });
           }}
@@ -536,10 +545,29 @@ export default function Admin() {
               onChange={(e) => setSettings({ ...settings, terms: e.target.value })} />
           </label>
           <label>
-            Deslinde de responsabilidad
+            Deslinde de responsabilidad editable
             <textarea rows={6} maxLength={40000} value={settings.waiver ?? ""}
               onChange={(e) => setSettings({ ...settings, waiver: e.target.value })} />
           </label>
+          <label>
+            Archivo del deslinde (PDF, JPG o PNG, hasta 5 MB)
+            <input
+              key={settings.waiver_file_id ?? "no-waiver-file"}
+              type="file"
+              accept="application/pdf,image/jpeg,image/png"
+              onChange={(e) => {
+                setWaiverFile(e.target.files?.[0] ?? null);
+                if (e.target.files?.length) setRemoveWaiverFile(false);
+              }}
+            />
+          </label>
+          {settings.waiver_file_id && !waiverFile && (
+            <label className="checkbox">
+              <input type="checkbox" checked={removeWaiverFile}
+                onChange={(e) => setRemoveWaiverFile(e.target.checked)} /> Quitar el archivo publicado del deslinde
+            </label>
+          )}
+          <p className="muted">Podés publicar el deslinde como texto, como archivo o en ambos formatos.</p>
           <label className="checkbox">
             <input type="checkbox" checked={settings.requirements_enabled ?? false}
               onChange={(e) => setSettings({ ...settings, requirements_enabled: e.target.checked })} />

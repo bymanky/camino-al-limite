@@ -883,7 +883,18 @@ function Registration({ settings }: { settings: Settings }) {
                 <details><summary>Leer los términos y condiciones</summary><p className="prewrap">{settings.terms}</p></details>
                 <label className="checkbox"><input type="checkbox" required checked={acceptTerms}
                   onChange={(e) => setAcceptTerms(e.target.checked)} /> Leí y acepto los términos y condiciones.</label>
-                <details><summary>Leer el deslinde de responsabilidad</summary><p className="prewrap">{settings.waiver}</p></details>
+                {settings.waiver && (
+                  <details><summary>Leer el deslinde de responsabilidad</summary><p className="prewrap">{settings.waiver}</p></details>
+                )}
+                {settings.waiver_file_id && (
+                  <button type="button" className="button outline" onClick={async () => {
+                    try {
+                      const { data, mime } = await api("waiver-file", { id: settings.waiver_file_id });
+                      const extension = mime === "application/pdf" ? "pdf" : mime === "image/jpeg" ? "jpg" : "png";
+                      downloadRegistrationFile(data, mime, "deslinde-camino-al-limite." + extension);
+                    } catch (e) { setError((e as Error).message); }
+                  }}>Descargar deslinde de responsabilidad</button>
+                )}
                 <label className="checkbox"><input type="checkbox" required checked={acceptWaiver}
                   onChange={(e) => setAcceptWaiver(e.target.checked)} /> Leí y acepto el deslinde de responsabilidad.</label>
               </>

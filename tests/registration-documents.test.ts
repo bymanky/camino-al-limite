@@ -31,6 +31,7 @@ beforeAll(async () => {
   for (const f of readdirSync(new URL("../supabase/migrations/", import.meta.url)).sort())
     await db.exec(sql("../supabase/migrations/" + f));
   await db.exec(sql("../supabase/sql/update_registration_documents.sql"));
+  await db.exec(sql("../supabase/sql/update_waiver_file.sql"));
   const result = await db.query<{ saved: { rules_pdf_id: string; requirements_revision: string } }>(
     "select public.trail_settings_update($1,$2) saved", [owner, settings],
   );
@@ -72,4 +73,23 @@ it("limita la descarga a quienes gestionan el evento y al integrante del equipo 
   try {
     await expect(db.query(query, [owner, teamId, memberId])).rejects.toThrow("permission denied");
   } finally { await db.exec("reset role"); }
+});
+
+it("acepta un deslinde en archivo sin texto y conserva la versión aceptada", async () => {
+  const document = { mime: "image/png", data: health.data };
+  const save = (patch: object) => db.query<{
+    saved: { waiver_file_id: string; requirements_revision: string };
+  }>("select public.trail_settings_update($1,$2) saved", [owner, { ...settings, ...patch }]);
+  const { rows: [{ saved }] } = await save({ waiver: "", waiver_file: document });
+  const read = () => db.query("select public.trail_public_waiver_file($1) doc", [saved.waiver_file_id]);
+  expect((await read()).rows[0]).toEqual({ doc: document });
+  const { rows: [{ id }] } = await db.query<{ id: string }>(
+    "select public.trail_register($1,'receipt-file','qr-file','request-file') id",
+    [{ ...draft, idempotency: crypto.randomUUID(), requirements_revision: saved.requirements_revision, health: [health, health, health, health] }],
+  );
+  await expect(save({ waiver: "", remove_waiver_file: true })).rejects.toThrow("antes de activar los requisitos");
+  await save({ remove_waiver_file: true });
+  expect((await read()).rows[0]).toEqual({ doc: null });
+  expect((await db.query("select waiver_file_id from trail_private.registration_consents where team_id=$1", [id])).rows[0])
+    .toEqual({ waiver_file_id: saved.waiver_file_id });
 });

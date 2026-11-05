@@ -55,6 +55,7 @@ export type Settings = {
   privacy: string;
   terms?: string;
   waiver?: string;
+  waiver_file_id?: string | null;
   rules_pdf_id?: string | null;
   requirements_enabled?: boolean;
   requirements_revision?: string;
