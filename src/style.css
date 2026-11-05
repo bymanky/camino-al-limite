@@ -601,6 +601,34 @@ footer strong {
   color: #6a7568;
   line-height: 1.8;
 }
+.receipt-recovery .back {
+  margin-bottom: 22px;
+}
+.receipt-recovery-card {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+  padding: clamp(16px, 4vw, 26px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+.receipt-recovery .receipt-recovery-card h2,
+.receipt-recovery-card p {
+  margin: 0;
+}
+.receipt-recovery-card small,
+.receipt-recovery-help p {
+  color: #536456;
+  line-height: 1.5;
+}
+.receipt-recovery-help {
+  background: #edf4ec;
+}
+.receipt-recovery-card .button {
+  width: 100%;
+  justify-content: center;
+}
 .back {
   display: flex;
   align-items: center;
