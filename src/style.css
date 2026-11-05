@@ -1595,3 +1595,52 @@ footer.with-floating-registration { padding-bottom: calc(135px + env(safe-area-i
   .whatsapp-float { right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
   .whatsapp-float.above-registration { bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }
 }
+
+.race-tips { background: #f4f3e7; }
+.race-tips h2 {
+  font-family: "Barlow Condensed", Impact, sans-serif;
+  font-size: clamp(32px, 5vw, 52px);
+  margin: 12px 0;
+}
+.race-tips > p { color: #465b4e; }
+.race-tips-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+.race-tips-card {
+  align-self: start;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: clamp(16px, 3vw, 28px);
+  background: #fffaf0;
+}
+.race-tips-card h3 { display: flex; align-items: center; gap: 10px; }
+.race-tips-card details { border-top: 1px solid var(--line); }
+.race-tips-card summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 4px;
+  min-height: 48px;
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+}
+.race-tips-card summary::-webkit-details-marker { display: none; }
+.race-tips-card summary:focus-visible { outline: 2px solid #c6500b; outline-offset: 2px; }
+.race-tips-card summary span { color: #a6400a; font-size: 22px; transition: transform 160ms ease; }
+.race-tips-card details[open] summary span { transform: rotate(45deg); }
+.race-tips-card details p { margin: 0 4px 14px; line-height: 1.65; color: #465b4e; }
+.race-tips-card details[open] p { animation: race-tip-in 180ms ease-out; }
+@keyframes race-tip-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 700px) { .race-tips-grid { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) {
+  .race-tips-card summary span { transition: none; }
+  .race-tips-card details[open] p { animation: none; }
+}
