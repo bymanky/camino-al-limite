@@ -960,6 +960,10 @@ function Registration({ settings }: { settings: Settings }) {
 function ReceiptRecovery({ contact }: { contact: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const contactDigits = contact.replace(/\D/g, "");
+  const whatsappNumber = /^0\d{8}$/.test(contactDigits)
+    ? "598" + contactDigits.slice(1)
+    : /^598\d{8}$/.test(contactDigits) ? contactDigits : "";
   async function recover(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
@@ -999,6 +1003,16 @@ function ReceiptRecovery({ contact }: { contact: string }) {
         </button>
       </form>
       <p><strong>¿También perdiste el código?</strong> Contactá a la organización con el nombre del equipo{contact ? " al " + contact : ""}.</p>
+      {whatsappNumber && (
+        <a
+          className="button outline"
+          href={`https://wa.me/${whatsappNumber}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Contactar por WhatsApp <ArrowUpRight size={16} aria-hidden="true" />
+        </a>
+      )}
     </main>
   );
 }
