@@ -342,9 +342,24 @@ export default function Admin() {
           <div className="eyebrow green">CAMINO AL LIMITE · ORGANIZACIÓN</div>
           <h1>Todo el equipo, a la vista.</h1>
           {profile && (
-            <p className="staff-identity">
-              {profile.username} · {staffRoles[profile.role].name}
-            </p>
+            <>
+              <p className="staff-identity">
+                {profile.username} · {staffRoles[profile.role].name}
+              </p>
+              <button
+                type="button"
+                className="text-button"
+                disabled={busy}
+                onClick={() =>
+                  run(async () => {
+                    const { url } = await api<{ url: string }>("admin-guide");
+                    window.location.assign(url);
+                  })
+                }
+              >
+                <Download size={16} aria-hidden="true" /> Guía de organización (PDF)
+              </button>
+            </>
           )}
         </div>
         <button
