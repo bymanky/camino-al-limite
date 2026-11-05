@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   LockKeyhole,
+  Share2,
 } from "lucide-react";
 import { api, configured } from "./api";
 import {
@@ -31,6 +32,7 @@ import {
 } from "./model";
 import { receiptPdf, receiptLink } from "./downloads";
 import { BrandLogo } from "./BrandLogo";
+import { downloadRegistrationFile, readRegistrationFile } from "./registrationFiles";
 const Admin = lazy(() => import("./Admin"));
 const newDraft = (): Draft => ({
   team: "",
@@ -354,6 +356,11 @@ export default function App() {
               </div>
             </div>
           </section>
+          <div className="event-share">
+            <a className="button outline" href={`https://wa.me/?text=${encodeURIComponent("¡Sumate a Camino al Limite! https://caminoallimite.com/")}`} target="_blank" rel="noopener noreferrer">
+              <Share2 size={17} aria-hidden="true" /> Compartir por WhatsApp
+            </a>
+          </div>
           <section className="section collaborators" aria-labelledby="colaboradores-title">
             <div className="eyebrow green">NOS ACOMPAÑAN</div>
             <h2 id="colaboradores-title">Colaboran</h2>
@@ -441,6 +448,17 @@ function Registration({ settings }: { settings: Settings }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [health, setHealth] = useState(() => Array.from({ length: TEAM_SIZE }, () => ({
+    file: null as File | null,
+    expires_on: "",
+  })));
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptWaiver, setAcceptWaiver] = useState(false);
+  const hasRules = Boolean(settings.rules.trim() || settings.rules_pdf_id);
+  const requiresHealth = settings.requirements_enabled === true;
+  function changeHealth(index: number, patch: Partial<(typeof health)[number]>) {
+    setHealth((previous) => previous.map((value, i) => i === index ? { ...value, ...patch } : value));
+  }
   const [done, setDone] = useState<{
     team: Team;
     token: string;
@@ -458,6 +476,10 @@ function Registration({ settings }: { settings: Settings }) {
         setError("El equipo debe tener exactamente 4 integrantes.");
         return;
       }
+      if (step === 1 && requiresHealth && health.some((item) => !item.file || !item.expires_on || item.expires_on < settings.date)) {
+        setError("Cargá un documento de salud vigente el día de la carrera y su vencimiento para cada integrante.");
+        return;
+      }
       setError("");
       setStep(step + 1);
       return;
@@ -469,22 +491,16 @@ function Registration({ settings }: { settings: Settings }) {
     }
     setBusy(true);
     try {
-      let attachment = null;
-      if (file) {
-        if (file.size > 5 * 1024 * 1024)
-          throw new Error("El archivo debe pesar menos de 5 MB");
-        attachment = {
-          name: file.name,
-          type: file.type,
-          data: await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result).split(",")[1]);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          }),
-        };
-      }
-      const result = await api("register", { ...d, attachment });
+      const attachment = file ? await readRegistrationFile(file, 5242880) : null;
+      const healthFiles = requiresHealth ? await Promise.all(health.map(async (item) => {
+        if (!item.file) throw new Error("Falta el documento de salud de un integrante.");
+        return { expires_on: item.expires_on, file: await readRegistrationFile(item.file, 1048576) };
+      })) : undefined;
+      const result = await api("register", {
+        ...d, attachment, health: healthFiles,
+        ...(requiresHealth ? { accept_terms: acceptTerms, accept_waiver: acceptWaiver } : {}),
+        ...(requiresHealth || settings.rules_pdf_id ? { requirements_revision: settings.requirements_revision } : {}),
+      });
       setDone(result);
       window.scrollTo(0, 0);
     } catch (e) {
@@ -551,6 +567,7 @@ function Registration({ settings }: { settings: Settings }) {
       <div className="eyebrow green">TU PRÓXIMA HISTORIA EMPIEZA ACÁ</div>
       <h1 ref={registrationHeading} tabIndex={-1}>Sumá tu equipo.</h1>
       <p>4 integrantes por equipo · $350 UYU por persona. Cupos limitados.</p>
+      <p className="notice">El día de la carrera, cada integrante deberá presentar su cédula de identidad física.</p>
       <div className="steps" ref={registrationSteps} tabIndex={-1} aria-label={`Paso ${step + 1} de 3`}>
         {["Tu equipo", "Integrantes", "Confirmación"].map((s, i) => (
           <span
@@ -703,6 +720,25 @@ function Registration({ settings }: { settings: Settings }) {
                     />
                   </label>
                 </div>
+                {requiresHealth && (
+                  <div className="field-grid">
+                    <label>
+                      Carné de salud o certificado de aptitud física
+                      <input type="file" accept="application/pdf,image/jpeg,image/png"
+                        required={!health[i].file}
+                        onChange={(e) => changeHealth(i, { file: e.target.files?.[0] ?? null })}
+                      />
+                      <small>{health[i].file?.name || "PDF, JPG o PNG · hasta 1 MB"}</small>
+                    </label>
+                    <label>
+                      Fecha de vencimiento
+                      <input type="date" required min={settings.date || undefined}
+                        value={health[i].expires_on}
+                        onChange={(e) => changeHealth(i, { expires_on: e.target.value })}
+                      />
+                    </label>
+                  </div>
+                )}
               </fieldset>
             ))}
           </>
@@ -776,6 +812,14 @@ function Registration({ settings }: { settings: Settings }) {
                 <p className="prewrap">{settings.rules}</p>
               </details>
             )}
+            {settings.rules_pdf_id && (
+              <button type="button" className="button outline" onClick={async () => {
+                try {
+                  const { data } = await api("rules-pdf", { id: settings.rules_pdf_id });
+                  downloadRegistrationFile(data, "application/pdf", "reglamento-camino-al-limite.pdf");
+                } catch (e) { setError((e as Error).message); }
+              }}>Descargar reglamento en PDF</button>
+            )}
             {settings.privacy && (
               <details>
                 <summary>Leer el aviso de privacidad</summary>
@@ -791,7 +835,17 @@ function Registration({ settings }: { settings: Settings }) {
               />{" "}
               Leí y acepto el reglamento y el aviso de privacidad.
             </label>
-            {(!settings.rules || !settings.privacy) && (
+            {requiresHealth && (
+              <>
+                <details><summary>Leer los términos y condiciones</summary><p className="prewrap">{settings.terms}</p></details>
+                <label className="checkbox"><input type="checkbox" required checked={acceptTerms}
+                  onChange={(e) => setAcceptTerms(e.target.checked)} /> Leí y acepto los términos y condiciones.</label>
+                <details><summary>Leer el deslinde de responsabilidad</summary><p className="prewrap">{settings.waiver}</p></details>
+                <label className="checkbox"><input type="checkbox" required checked={acceptWaiver}
+                  onChange={(e) => setAcceptWaiver(e.target.checked)} /> Leí y acepto el deslinde de responsabilidad.</label>
+              </>
+            )}
+            {(!hasRules || !settings.privacy) && (
               <p className="notice">
                 La organización debe publicar el reglamento y el aviso de
                 privacidad antes de habilitar la inscripción.
@@ -825,7 +879,7 @@ function Registration({ settings }: { settings: Settings }) {
               (step === 2 &&
                 (!configured ||
                   !settings.open ||
-                  !settings.rules ||
+                  !hasRules ||
                   !settings.privacy))
             }
             type="submit"

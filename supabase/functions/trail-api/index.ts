@@ -24,6 +24,9 @@ const registration = z
     method: z.enum(["ecos", "fomento", "transferencia"]),
     members: z.array(member).length(4),
     accepted: z.literal(true),
+    accept_terms: z.boolean().optional(),
+    accept_waiver: z.boolean().optional(),
+    requirements_revision: z.string().uuid().optional(),
     idempotency: z.string().uuid(),
     website: z.string().max(0),
   })
@@ -44,6 +47,10 @@ const settingsSchema = z.object({
   contact: z.string().max(200),
   rules: z.string().max(40000),
   privacy: z.string().max(40000),
+  terms: z.string().max(40000).optional(),
+  waiver: z.string().max(40000).optional(),
+  requirements_enabled: z.boolean().optional(),
+  remove_rules_pdf: z.boolean().optional(),
   open: z.boolean(),
   min_members: z.literal(4),
 });
@@ -116,6 +123,11 @@ async function rpc(name: string, args: Record<string, unknown> = {}) {
       "Inscripción inexistente o cancelada",
       "Integrantes inválidos",
       "Publicá el reglamento y el aviso de privacidad antes de abrir",
+      "Aceptá los términos y el deslinde de responsabilidad",
+      "Cargá un documento de salud por integrante",
+      "Cada documento de salud debe estar vigente el día de la carrera",
+      "La información del evento cambió. Actualizá la página y volvé a revisar los documentos",
+      "Publicá la fecha, los términos, el deslinde y el aviso de privacidad antes de activar los requisitos",
     ];
     if (safe.includes(error.message)) throw new SafeError(error.message);
     console.error("RPC failed", name, error.code);
@@ -286,10 +298,10 @@ Deno.serve(async (req) => {
   if (origin && !origins.includes(origin))
     return reply({ error: "Origen no autorizado" }, 403);
   try {
-    if (Number(req.headers.get("content-length") || 0) > 7200000)
+    if (Number(req.headers.get("content-length") || 0) > 13000000)
       throw new SafeError("Archivo demasiado grande", 413);
     const raw = await req.text();
-    if (raw.length > 7200000)
+    if (raw.length > 13000000)
       throw new SafeError("Archivo demasiado grande", 413);
     const b = JSON.parse(raw);
     if (b.action === "settings") {
@@ -299,7 +311,14 @@ Deno.serve(async (req) => {
         .eq("id", 1)
         .single();
       if (error) throw error;
-      return reply(data);
+      const { terms, waiver, ...settings } = data;
+      return reply(settings.requirements_enabled ? { ...settings, terms, waiver } : settings);
+    }
+    if (b.action === "rules-pdf") {
+      await limited(req, "rules-pdf", 40);
+      const data = await rpc("trail_public_rules_pdf", { p_pdf: z.string().uuid().parse(b.id) });
+      if (!data) throw new SafeError("El reglamento cambió. Actualizá la página", 404);
+      return reply({ data });
     }
     if (b.action === "login") {
       await limited(req, "login", 10);
@@ -352,7 +371,17 @@ Deno.serve(async (req) => {
     }
     if (b.action === "register") {
       await limited(req, "register", 8);
-      const p = registration.parse(b);
+      const registrationData = registration.parse(b);
+      const health = b.health === undefined ? undefined : z.array(z.object({
+        expires_on: z.iso.date(),
+        file: z.unknown(),
+      })).length(4).parse(b.health).map(({ expires_on, file }) => {
+        const document = fileBytes(file);
+        if (!document || document.bytes.length > 1048576)
+          throw new SafeError("Cada documento de salud debe pesar hasta 1 MB");
+        return { expires_on, mime: document.type, data: (file as { data: string }).data };
+      });
+      const p = { ...registrationData, health };
       const attachment = fileBytes(b.attachment);
       const receipt = await token("receipt", p.idempotency);
       const qr = await token("qr", p.idempotency);
@@ -405,6 +434,7 @@ Deno.serve(async (req) => {
       "admin-list": "read",
       "admin-lookup": "lookup",
       "admin-settings": "manage",
+      "admin-health-document": "manage",
       "admin-attend": "attendance",
       "admin-file": "payments",
       "admin-receipt": "read",
@@ -597,13 +627,24 @@ Deno.serve(async (req) => {
       if (!id) throw new SafeError("El código no existe", 404);
       return reply(teamForActor(await getTeam(id), actor));
     }
-    if (b.action === "admin-settings")
-      return reply(
-        await rpc("trail_settings_update", {
-          p_admin: actor.id,
-          p: settingsSchema.parse(b.settings),
-        }),
-      );
+    if (b.action === "admin-settings") {
+      const settings = settingsSchema.parse(b.settings);
+      const pdf = fileBytes(b.rulesPdf);
+      if (pdf && pdf.type !== "application/pdf") throw new SafeError("El reglamento debe ser PDF");
+      return reply(await rpc("trail_settings_update", {
+        p_admin: actor.id,
+        p: { ...settings, ...(pdf ? { rules_pdf: b.rulesPdf.data } : {}) },
+      }));
+    }
+    if (b.action === "admin-health-document") {
+      const document = await rpc("trail_health_document", {
+        p_admin: actor.id,
+        p_team: z.string().uuid().parse(b.id),
+        p_member: z.string().uuid().parse(b.member),
+        p_download: b.download === true,
+      });
+      return reply({ document });
+    }
     const id = z.string().uuid().parse(b.id);
     if (b.action === "admin-remove")
       return reply(
