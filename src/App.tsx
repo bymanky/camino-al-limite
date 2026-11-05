@@ -1002,7 +1002,7 @@ function ReceiptRecovery({ contact }: { contact: string }) {
           {busy ? "Buscando…" : "Buscar mi comprobante"}
         </button>
       </form>
-      <p><strong>¿También perdiste el código?</strong> Contactá a la organización con el nombre del equipo{contact ? " al " + contact : ""}.</p>
+      <p><strong>¿También perdiste el código?</strong> Contactá a la organización con el nombre del equipo.</p>
       {whatsappNumber && (
         <a
           className="button outline"
