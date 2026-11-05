@@ -86,6 +86,8 @@ beforeEach(() => {
           ? mock.staffUsers
           : name === "trail_rate"
             ? true
+            : name === "trail_receipt_seed"
+              ? "test-receipt-seed"
             : name === "trail_lookup"
               ? teamId
               : name === "trail_team" || name === "trail_attend"
@@ -127,6 +129,18 @@ async function call(action: string, p: any = {}, auth = true) {
   );
   return { status: r.status, body: await r.json() };
 }
+it("recupera el enlace privado solo con el código y el correo del responsable", async () => {
+  const code = "cal-1234567890abcdef";
+  expect(await call("receipt-recovery", { code, email: "otro@example.com" }, false))
+    .toEqual({ status: 404, body: { error: "No encontramos un comprobante con ese código y correo." } });
+  expect(mock.rpc).not.toHaveBeenCalledWith("trail_receipt_seed", expect.anything());
+
+  const result = await call("receipt-recovery", { code, email: " Privado@Example.com " }, false);
+  expect(result.status).toBe(200);
+  expect(result.body).toEqual({ token: expect.stringMatching(/^[a-f0-9]{64}$/) });
+  expect(mock.rpc).toHaveBeenCalledWith("trail_rate", expect.objectContaining({ p_limit: 8 }));
+  expect(mock.rpc).toHaveBeenCalledWith("trail_lookup", { p_code: code.toUpperCase(), p_hash: "" });
+});
 it("rechaza gestión de usuarios sin sesión y no confía en user_metadata", async () => {
   expect((await call("admin-users", {}, false)).status).toBe(401);
   expect((await call("admin-users")).status).toBe(403);
