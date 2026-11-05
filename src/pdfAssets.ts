@@ -1,5 +1,11 @@
 import { brandLogos } from "./BrandLogo";
 const base = import.meta.env.BASE_URL;
+const receiptLogos = [
+  { brand: "emprende", role: "En el marco de la feria" },
+  { brand: "manky", role: "Producido por" },
+  { brand: "miyiton", role: "Producido por" },
+  { brand: "fomento", role: "Patrocina" },
+] as const;
 function base64(buffer: ArrayBuffer) {
   const bytes = new Uint8Array(buffer);
   let binary = "";
@@ -26,8 +32,8 @@ export function receiptAssets() {
   return (cached ??= Promise.all([
     asset("fonts/AtkinsonHyperlegible-Regular.ttf"),
     asset("fonts/AtkinsonHyperlegible-Bold.ttf"),
-    ...(["emprende", "manky", "fomento"] as const).map((key) =>
-      asset("logos/" + brandLogos[key].file),
+    ...receiptLogos.map(({ brand }) =>
+      asset("logos/" + brandLogos[brand].file),
     ),
   ])
     .then(([regular, bold, ...images]) => ({
@@ -35,10 +41,8 @@ export function receiptAssets() {
       bold,
       logos: images.map((data, i) => ({
         data: "data:image/png;base64," + data,
-        name: ["Emprende Camino", "By Manky", "Sociedad de Fomento de Flores"][
-          i
-        ],
-        role: ["En el marco de la feria", "Producido por", "Patrocina"][i],
+        name: brandLogos[receiptLogos[i].brand].alt,
+        role: receiptLogos[i].role,
       })),
     }))
     .catch((error) => {

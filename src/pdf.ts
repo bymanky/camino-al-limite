@@ -34,7 +34,14 @@ export async function receiptPdf(t: Team, token: string) {
   header();
   font(19, true);
   doc.text("Comprobante de inscripción", 18, 49);
-  let y = 61;
+  doc.setFillColor("#fbe9d6");
+  doc.roundedRect(18, 55, 174, 26, 3, 3, "F");
+  font(11, true);
+  doc.text("OBLIGATORIO EL DÍA DE LA CARRERA", 23, 63);
+  font(15, true);
+  doc.text("Presentá este comprobante y la cédula de", 23, 71);
+  doc.text("identidad física de cada integrante.", 23, 77);
+  let y = 90;
   const ensure = (height: number) => {
     if (y + height > 236) {
       doc.addPage();
@@ -47,6 +54,7 @@ export async function receiptPdf(t: Team, token: string) {
     const lines = doc.splitTextToSize(value, 174);
     const h = lines.length * 5.3 + 2;
     ensure(h);
+    font(size, bold);
     doc.text(lines, 18, y);
     y += h;
   };
@@ -95,13 +103,14 @@ export async function receiptPdf(t: Team, token: string) {
     doc.setPage(page);
     doc.setDrawColor("#d8dfd5");
     doc.line(18, 244, 192, 244);
+    const logoColumn = 174 / assets.logos.length;
     for (const [i, logo] of assets.logos.entries()) {
-      const center = 46 + i * 59;
+      const center = 18 + (i + 0.5) * logoColumn;
       font(8, true);
       doc.setTextColor("#163e32");
       doc.text(logo.role, center, 250, { align: "center" });
       const props = doc.getImageProperties(logo.data);
-      const scale = Math.min(49 / props.width, 23 / props.height);
+      const scale = Math.min((logoColumn - 6) / props.width, 23 / props.height);
       const w = props.width * scale,
         h = props.height * scale;
       doc.addImage(
@@ -115,7 +124,7 @@ export async function receiptPdf(t: Team, token: string) {
         "FAST",
       );
       font(7);
-      doc.text(doc.splitTextToSize(logo.name, 55), center, 281, {
+      doc.text(doc.splitTextToSize(logo.name, logoColumn - 4), center, 281, {
         align: "center",
       });
     }
