@@ -28,6 +28,7 @@ import { receiptPdf, rosterPdf } from "./downloads";
 import Scanner from "./Scanner";
 import StaffManagement from "./StaffManagement";
 import OwnPassword from "./OwnPassword";
+import { downloadRegistrationFile, readRegistrationFile } from "./registrationFiles";
 import { staffRoles, type StaffProfile } from "./staff";
 export default function Admin() {
   const [profile, setProfile] = useState<StaffProfile | null>(null);
@@ -44,6 +45,8 @@ export default function Admin() {
   const [busy, setBusy] = useState(false);
   const [teams, setTeams] = useState<Team[]>([]);
   const [settings, setSettings] = useState<Settings>(initialSettings);
+  const [rulesPdf, setRulesPdf] = useState<File | null>(null);
+  const [removeRulesPdf, setRemoveRulesPdf] = useState(false);
   const [tab, setTab] = useState("teams");
   const [query, setQuery] = useState("");
   const [pay, setPay] = useState("");
@@ -452,7 +455,13 @@ export default function Admin() {
           onSubmit={(e) => {
             e.preventDefault();
             run(async () => {
-              await api("admin-settings", { settings });
+              const saved = await api<Settings>("admin-settings", {
+                settings: { ...settings, remove_rules_pdf: removeRulesPdf },
+                rulesPdf: rulesPdf ? await readRegistrationFile(rulesPdf, 5242880) : null,
+              });
+              setSettings(saved);
+              setRulesPdf(null);
+              setRemoveRulesPdf(false);
               setNotice("Configuración guardada.");
             });
           }}
@@ -485,9 +494,8 @@ export default function Admin() {
             </label>
           </div>
           <label>
-            Reglamento
+            Reglamento editable
             <textarea
-              required
               rows={6}
               value={settings.rules}
               onChange={(e) =>
@@ -495,6 +503,34 @@ export default function Admin() {
               }
             />
           </label>
+          <label>
+            Reglamento en PDF (hasta 5 MB)
+            <input key={settings.rules_pdf_id ?? "no-pdf"} type="file" accept="application/pdf"
+              onChange={(e) => setRulesPdf(e.target.files?.[0] ?? null)} />
+          </label>
+          {settings.rules_pdf_id && (
+            <label className="checkbox">
+              <input type="checkbox" checked={removeRulesPdf}
+                onChange={(e) => setRemoveRulesPdf(e.target.checked)} /> Quitar el PDF publicado
+            </label>
+          )}
+          <p className="muted">Podés publicar el reglamento como texto, como PDF o en ambos formatos.</p>
+          <label>
+            Términos y condiciones
+            <textarea rows={6} maxLength={40000} value={settings.terms ?? ""}
+              onChange={(e) => setSettings({ ...settings, terms: e.target.value })} />
+          </label>
+          <label>
+            Deslinde de responsabilidad
+            <textarea rows={6} maxLength={40000} value={settings.waiver ?? ""}
+              onChange={(e) => setSettings({ ...settings, waiver: e.target.value })} />
+          </label>
+          <label className="checkbox">
+            <input type="checkbox" checked={settings.requirements_enabled ?? false}
+              onChange={(e) => setSettings({ ...settings, requirements_enabled: e.target.checked })} />
+            Exigir aceptación de términos y deslinde, y documento de salud por integrante
+          </label>
+          <p className="muted">Antes de activar, cargá los textos aprobados y actualizá el aviso de privacidad para explicar el tratamiento de los documentos de salud.</p>
           <label>
             Aviso de privacidad
             <textarea
@@ -735,6 +771,29 @@ export default function Admin() {
               >
                 Ver comprobante de transferencia
               </button>
+            )}
+            {can("manage") && !selected.deleted_at && (
+              <details>
+                <summary>Documentos de salud</summary>
+                {selected.members.map((member) => (
+                  <button key={member.id} type="button" className="text-button"
+                    disabled={busy || !member.id}
+                    onClick={() => run(async () => {
+                      const { document } = await api("admin-health-document", {
+                        id: selected.id, member: member.id, download: true,
+                      });
+                      if (!document) {
+                        setNotice("No hay documento de salud para este integrante.");
+                        return;
+                      }
+                      const extension = document.mime === "application/pdf" ? "pdf" : document.mime === "image/png" ? "png" : "jpg";
+                      downloadRegistrationFile(document.data, document.mime, "documento-salud." + extension);
+                      setNotice("Vencimiento del documento: " + document.expires_on.split("-").reverse().join("/") + ".");
+                    })}>
+                    Descargar documento de {member.name}
+                  </button>
+                ))}
+              </details>
             )}
             {selected.deleted_at ? (
               <div className="notice">

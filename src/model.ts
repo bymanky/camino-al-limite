@@ -53,6 +53,11 @@ export type Settings = {
   contact: string;
   rules: string;
   privacy: string;
+  terms?: string;
+  waiver?: string;
+  rules_pdf_id?: string | null;
+  requirements_enabled?: boolean;
+  requirements_revision?: string;
   open: boolean;
   min_members: number;
 };

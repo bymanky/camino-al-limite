@@ -1569,3 +1569,5 @@ footer.with-floating-registration { padding-bottom: calc(135px + env(safe-area-i
 @media (prefers-reduced-motion: reduce) {
   .registration-cta svg { transition: none; }
 }
+
+.event-share { padding: 24px 7% 0; }
