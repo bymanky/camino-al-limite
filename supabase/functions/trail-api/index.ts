@@ -430,6 +430,16 @@ Deno.serve(async (req) => {
     }
     const actor = await admin(req);
     if (b.action === "admin-me") return reply({ profile: actor });
+    if (b.action === "admin-guide") {
+      const { data, error } = await root.storage
+        .from("trail-receipts")
+        .createSignedUrl("organizacion/guia-camino-al-limite.pdf", 60, {
+          download: "guia-organizacion-camino-al-limite.pdf",
+        });
+      if (error || !data?.signedUrl)
+        throw new SafeError("La guía de organización aún no está disponible", 404);
+      return reply({ url: data.signedUrl });
+    }
     const permission: Record<string, string> = {
       "admin-list": "read",
       "admin-lookup": "lookup",
