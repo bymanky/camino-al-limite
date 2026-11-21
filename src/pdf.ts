@@ -28,7 +28,7 @@ export async function receiptPdf(t: Team, token: string) {
     font(24, true);
     doc.text("CAMINO AL LIMITE", 18, 20);
     font(10);
-    doc.text("TRAIL 5 KM  /  EQUIPOS DE 4 INTEGRANTES", 18, 28);
+    doc.text("TRAIL 5 KM  /  EQUIPOS DE 2 A 6 INTEGRANTES", 18, 28);
     doc.setTextColor("#163e32");
   };
   header();
@@ -68,7 +68,7 @@ export async function receiptPdf(t: Team, token: string) {
   line("INTEGRANTES (" + t.members.length + ")", 10, true);
   for (const [i, m] of t.members.entries()) line(i + 1 + ". " + m.name, 11);
   y += 2;
-  line("Inscripción: $" + t.amount / 4 + " UYU por persona", 12, true);
+  line("Inscripción del equipo: $" + t.amount + " UYU", 12, true);
   line("Total del equipo: $" + t.amount + " UYU", 11, true);
   line("Modalidad: " + methods[t.method], 10);
   if (t.payment !== "confirmado")

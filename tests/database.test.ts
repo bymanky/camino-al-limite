@@ -84,13 +84,13 @@ describe.sequential("Base de datos y permisos", () => {
       register({ ...p, team: "Cambiado" }, "r", "q", "different"),
     ).rejects.toThrow("La solicitud ya fue utilizada");
   });
-  it("rechaza cinco integrantes sin dejar un equipo parcial", async () => {
+  it("rechaza siete integrantes sin dejar un equipo parcial", async () => {
     await expect(
       register(
         {
           ...p,
           idempotency: crypto.randomUUID(),
-          members: Array.from({ length: 5 }, (_, i) => ({
+          members: Array.from({ length: 7 }, (_, i) => ({
             name: "Persona " + i,
             document: "1234567" + i,
           })),
@@ -108,7 +108,7 @@ describe.sequential("Base de datos y permisos", () => {
       ).rows[0].n,
     ).toBe(1);
   });
-  it.each([0, 1, 2, 3])(
+  it.each([0, 1, 7])(
     "la base rechaza equipos de %i sin dejar registros parciales",
     async (n) => {
       await expect(
@@ -116,7 +116,7 @@ describe.sequential("Base de datos y permisos", () => {
           {
             ...p,
             idempotency: crypto.randomUUID(),
-            members: p.members.slice(0, n),
+            members: Array.from({length:n},(_,i)=>({name:"Persona "+i,document:"1234567"+i})),
           },
           `r-short-${n}`,
           `q-short-${n}`,
@@ -153,7 +153,7 @@ describe.sequential("Base de datos y permisos", () => {
           "select min_members from public.trail_settings",
         )
       ).rows[0].min_members,
-    ).toBe(4);
+    ).toBe(2);
   });
   it("revierte todo si un integrante tiene datos inválidos", async () => {
     await expect(

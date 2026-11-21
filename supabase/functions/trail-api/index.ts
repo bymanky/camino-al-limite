@@ -22,7 +22,7 @@ const registration = z
     phone: z.string().trim().min(7).max(30),
     email: z.string().trim().email().max(150),
     method: z.enum(["ecos", "fomento", "transferencia"]),
-    members: z.array(member).length(4),
+    members: z.array(member).min(2).max(6),
     accepted: z.literal(true),
     accept_terms: z.boolean().optional(),
     accept_waiver: z.boolean().optional(),
@@ -53,7 +53,7 @@ const settingsSchema = z.object({
   remove_rules_pdf: z.boolean().optional(),
   remove_waiver_file: z.boolean().optional(),
   open: z.boolean(),
-  min_members: z.literal(4),
+  min_members: z.union([z.literal(2), z.literal(4)]),
 });
 const patchSchema = z
   .object({
@@ -67,7 +67,7 @@ const patchSchema = z
     members: z
       .array(member.extend({ id: z.string().uuid() }))
       .min(0)
-      .max(4)
+      .max(6)
       .optional(),
   })
   .strict();
@@ -299,10 +299,10 @@ Deno.serve(async (req) => {
   if (origin && !origins.includes(origin))
     return reply({ error: "Origen no autorizado" }, 403);
   try {
-    if (Number(req.headers.get("content-length") || 0) > 15000000)
+    if (Number(req.headers.get("content-length") || 0) > 17000000)
       throw new SafeError("Archivo demasiado grande", 413);
     const raw = await req.text();
-    if (raw.length > 15000000)
+    if (raw.length > 17000000)
       throw new SafeError("Archivo demasiado grande", 413);
     const b = JSON.parse(raw);
     if (b.action === "settings") {
@@ -382,7 +382,7 @@ Deno.serve(async (req) => {
       const health = b.health === undefined ? undefined : z.array(z.object({
         expires_on: z.iso.date(),
         file: z.unknown(),
-      })).length(4).parse(b.health).map(({ expires_on, file }) => {
+      })).length(registrationData.members.length).parse(b.health).map(({ expires_on, file }) => {
         const document = fileBytes(file);
         if (!document || document.bytes.length > 1048576)
           throw new SafeError("Cada documento de salud debe pesar hasta 1 MB");
@@ -706,7 +706,7 @@ Deno.serve(async (req) => {
           await rpc("trail_attend", {
             p_admin: actor.id,
             p_id: id,
-            p_ids: z.array(z.string().uuid()).min(1).max(4).parse(b.ids),
+            p_ids: z.array(z.string().uuid()).min(1).max(6).parse(b.ids),
           }),
           actor,
         ),
@@ -736,7 +736,7 @@ Deno.serve(async (req) => {
       return reply(
         {
           error:
-            "Revisá los datos ingresados. El equipo debe tener exactamente 4 integrantes y documentos sin repetir.",
+            "Revisá los datos ingresados. El equipo debe tener entre 2 y 6 integrantes y documentos sin repetir.",
         },
         400,
       );

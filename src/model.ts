@@ -1,5 +1,7 @@
 import { z } from "zod";
-export const TEAM_SIZE = 4;
+export const MIN_TEAM_SIZE = 2;
+export const MAX_TEAM_SIZE = 6;
+export const TEAM_SIZE = MIN_TEAM_SIZE;
 export const memberSchema = z.object({
   name: z.string().trim().min(3, "Ingresá nombre y apellido").max(100),
   document: z.string().trim().min(5, "Revisá el documento").max(30),
@@ -13,7 +15,8 @@ export const registrationSchema = z
     method: z.enum(["ecos", "fomento", "transferencia"]),
     members: z
       .array(memberSchema)
-      .length(TEAM_SIZE, "El equipo debe tener exactamente 4 integrantes"),
+      .min(MIN_TEAM_SIZE, "El equipo debe tener entre 2 y 6 integrantes")
+      .max(MAX_TEAM_SIZE, "El equipo debe tener entre 2 y 6 integrantes"),
     accepted: z.literal(true),
     idempotency: z.string().uuid(),
     website: z.string().max(0),
