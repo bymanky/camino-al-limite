@@ -167,14 +167,14 @@ export default function App() {
               </h1>
               <p className="hero-description">
                 5 km con obstáculos y polvos de colores para desafiarse
-                <br className="desktop" /> y divertirse en equipos de cuatro personas.
+                <br className="desktop" /> y divertirse en equipos de 2 a 6 personas.
               </p>
               <div className="hero-actions">
                 <a className="button lime" href="#/inscripcion">
                   Inscribir mi equipo <ArrowUpRight size={19} />
                 </a>
                 <span>
-                  Equipos de 4 personas. Cupos limitados.
+                  Equipos de 2 a 6 personas. Cupos limitados.
                   <br />
                   <strong>Una experiencia para todos.</strong>
                 </span>
@@ -284,7 +284,7 @@ export default function App() {
                   icon: Mountain,
                   tips: [
                     ["Dejá pronto tu equipo", "Prepará el calzado que ya usás, ropa cómoda que pueda mancharse y una botella de agua. Llevá tu cédula física."],
-                    ["Acordá el punto de encuentro", "Confirmá el lugar y la hora de largada con los cuatro integrantes. Lleguen con margen para acreditarse y guardar sus cosas."],
+                    ["Acordá el punto de encuentro", "Confirmá el lugar y la hora de largada con todos los integrantes. Lleguen con margen para acreditarse y guardar sus cosas."],
                     ["Arranquen juntos", "Acuerden un ritmo que todos puedan seguir y escuchen las indicaciones de la organización antes de entrar al circuito."],
                   ],
                 },
@@ -377,7 +377,7 @@ export default function App() {
               <div className="price">
                 $350<span>UYU / persona</span>
               </div>
-              <p>4 integrantes por equipo · Total: $1400 UYU</p>
+              <p>De 2 a 6 integrantes por equipo · Desde $700 UYU</p>
               <p>
                 <strong>Cupos limitados</strong> · Trail de 5 km
               </p>
@@ -469,7 +469,7 @@ export default function App() {
       {!admin && !recoveringReceipt && !route.startsWith("#/comprobante/") && (
         <a
           className={showFloatingRegistration ? "whatsapp-float above-registration" : "whatsapp-float"}
-          href={`https://wa.me/?text=${encodeURIComponent("🏃 Camino al Limite · Trail 5K\nArmá tu equipo de 4 y animate a los obstáculos, los polvos de colores y los premios. ¡Cupos limitados!\n\nhttps://caminoallimite.com/")}`}
+          href={`https://wa.me/?text=${encodeURIComponent("🏃 Camino al Limite · Trail 5K\nArmá tu equipo de 2 a 6 personas y animate a los obstáculos, los polvos de colores y los premios. ¡Cupos limitados!\n\nhttps://caminoallimite.com/")}`}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Compartir Camino al Limite por WhatsApp"
@@ -479,7 +479,7 @@ export default function App() {
       )}
       {showFloatingRegistration && (
         <aside className="floating-registration" aria-label="Inscribí tu equipo">
-          <div><strong>¡Sumá tu equipo!</strong><span>4 integrantes · $350 por persona</span></div>
+          <div><strong>¡Sumá tu equipo!</strong><span>2 a 6 integrantes · $350 por persona</span></div>
           <a className="button lime registration-cta" href="#/inscripcion">Quiero ser parte <ArrowUpRight size={19} aria-hidden="true" /></a>
         </aside>
       )}
@@ -516,14 +516,23 @@ function Registration({ settings }: { settings: Settings }) {
   } | null>(null);
   const change = (key: keyof Draft, value: unknown) =>
     setD((p) => ({ ...p, [key]: value }));
+  function resizeTeam(size: number) {
+    setD((previous) => ({
+      ...previous,
+      members: Array.from({ length: size }, (_, i) =>
+        previous.members[i] ?? { name: "", document: "" }),
+    }));
+    setHealth((previous) => Array.from({ length: size }, (_, i) =>
+      previous[i] ?? { file: null, expires_on: "" }));
+  }
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError("");
     if (step < 2) {
       const form = e.currentTarget as HTMLFormElement;
       if (!form.reportValidity()) return;
-      if (step === 1 && d.members.length !== TEAM_SIZE) {
-        setError("El equipo debe tener exactamente 4 integrantes.");
+      if (step === 1 && (d.members.length < 2 || d.members.length > 6)) {
+        setError("El equipo debe tener entre 2 y 6 integrantes.");
         return;
       }
       if (step === 1 && requiresHealth && health.some((item) => !item.file || !item.expires_on || item.expires_on < settings.date)) {
@@ -616,7 +625,7 @@ function Registration({ settings }: { settings: Settings }) {
       </a>
       <div className="eyebrow green">TU PRÓXIMA HISTORIA EMPIEZA ACÁ</div>
       <h1 ref={registrationHeading} tabIndex={-1}>Sumá tu equipo.</h1>
-      <p>4 integrantes por equipo · $350 UYU por persona. Cupos limitados.</p>
+      <p>De 2 a 6 integrantes por equipo · $350 UYU por persona. Cupos limitados.</p>
       <p className="notice">El día de la carrera, cada integrante deberá presentar su cédula de identidad física.</p>
       <div className="steps" ref={registrationSteps} tabIndex={-1} aria-label={`Paso ${step + 1} de 3`}>
         {["Tu equipo", "Integrantes", "Confirmación"].map((s, i) => (
@@ -711,8 +720,19 @@ function Registration({ settings }: { settings: Settings }) {
         {step === 1 && (
           <>
             <h2>El camino se comparte</h2>
+            <label>
+              ¿Cuántas personas integran el equipo?
+              <select value={d.members.length} onChange={(e) => resizeTeam(Number(e.target.value))}>
+                <option value={2}>2 personas (dupla)</option>
+                <option value={3}>3 personas</option>
+                <option value={4}>4 personas</option>
+                <option value={5}>5 personas</option>
+                <option value={6}>6 personas</option>
+              </select>
+            </label>
+            <p><strong>Total del equipo: {money(350 * d.members.length)}</strong> · $350 por persona</p>
             <p>
-              Completá los datos de las 4 personas del equipo. Todos los
+              Completá los datos de las {d.members.length} personas del equipo. Todos los
               integrantes son obligatorios.
             </p>
             {d.members.map((m, i) => (
@@ -810,7 +830,7 @@ function Registration({ settings }: { settings: Settings }) {
               ))}
               <hr />
               <strong>
-                $350 UYU por persona · 4 integrantes · Total por equipo: $1400
+                $350 UYU por persona · {d.members.length} integrantes · Total por equipo: ${350 * d.members.length}
                 UYU
               </strong>
             </div>
@@ -849,7 +869,7 @@ function Registration({ settings }: { settings: Settings }) {
               </div>
             ) : (
               <p>
-                Aboná $350 por persona ($1400 por equipo) en{" "}
+                Aboná $350 por persona ({money(350 * d.members.length)} por equipo) en{" "}
                 {d.method === "ecos"
                   ? "Ecos Regionales"
                   : "Sociedad de Fomento de Flores"}

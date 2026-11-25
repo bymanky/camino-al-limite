@@ -32,6 +32,7 @@ beforeAll(async () => {
     await db.exec(sql("../supabase/migrations/" + f));
   await db.exec(sql("../supabase/sql/update_registration_documents.sql"));
   await db.exec(sql("../supabase/sql/update_waiver_file.sql"));
+  await db.exec(sql("../supabase/sql/update_team_sizes.sql"));
   const result = await db.query<{ saved: { rules_pdf_id: string; requirements_revision: string } }>(
     "select public.trail_settings_update($1,$2) saved", [owner, settings],
   );
@@ -92,4 +93,19 @@ it("acepta un deslinde en archivo sin texto y conserva la versión aceptada", as
   expect((await read()).rows[0]).toEqual({ doc: null });
   expect((await db.query("select waiver_file_id from trail_private.registration_consents where team_id=$1", [id])).rows[0])
     .toEqual({ waiver_file_id: saved.waiver_file_id });
+});
+
+it.each([2,3,4,5,6])("registra %i integrantes con precio y documentos correctos", async (size) => {
+ const result = await db.query<{saved: {requirements_revision: string}}>(
+  "select public.trail_settings_update($1,$2) saved", [owner,settings]);
+ const members=Array.from({length:size},(_,i)=>({name:"Participante "+i,document:"TEAMSIZE"+i}));
+ const {rows:[{id}]}=await db.query<{id:string}>(
+  "select public.trail_register($1,$2,$3,$4) id",
+  [{...draft,members,idempotency:crypto.randomUUID(),requirements_revision:result.rows[0].saved.requirements_revision,
+   health:Array.from({length:size},()=>health)}, "receipt-size"+size,"qr-size"+size,"request-size"+size]);
+ expect((await db.query("select amount from trail_teams where id=$1",[id])).rows[0]).toEqual({amount:size*350});
+ const ids=(await db.query<{id:string}>("select id from trail_members where team_id=$1",[id])).rows.map(m=>m.id);
+ expect(ids).toHaveLength(size);
+ await db.query("select trail_attend($1,$2,$3)",[owner,id,ids]);
+ expect((await db.query("select member_id from trail_private.health_documents where member_id=any($1)",[ids])).rows).toHaveLength(size);
 });

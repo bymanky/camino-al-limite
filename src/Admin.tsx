@@ -514,7 +514,7 @@ export default function Admin() {
             ))}
             <label>
               Integrantes por equipo
-              <input value="4 personas (obligatorio)" readOnly />
+              <input value="De 2 a 6 personas por equipo" readOnly />
             </label>
           </div>
           <label>
@@ -860,10 +860,10 @@ export default function Admin() {
                 {editing ? "Cerrar edición" : "Editar equipo y participantes"}
               </button>
             )}
-            {!selected.deleted_at && selected.members.length !== 4 && (
+            {!selected.deleted_at && (selected.members.length < 2 || selected.members.length > 6) && (
               <p className="notice">
                 Equipo incompleto: quedan {selected.members.length} integrantes.
-                Las nuevas inscripciones siguen siendo de cuatro personas.
+                Las nuevas inscripciones admiten de 2 a 6 personas.
               </p>
             )}
             <h3>Integrantes</h3>

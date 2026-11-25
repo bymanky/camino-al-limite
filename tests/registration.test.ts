@@ -15,10 +15,10 @@ const draft = {
   website: "",
 };
 describe("Inscripción", () => {
-  it("acepta exactamente cuatro integrantes", () => {
+  it("acepta equipos de cuatro integrantes", () => {
     expect(registrationSchema.safeParse(draft).success).toBe(true);
   });
-  it.each([0, 1, 2, 3, 5])("rechaza equipos de %i integrantes", (n) => {
+  it.each([0, 1, 7])("rechaza equipos de %i integrantes", (n) => {
     expect(
       registrationSchema.safeParse({
         ...draft,
@@ -35,7 +35,7 @@ describe("Inscripción", () => {
         ...draft,
         members: [
           draft.members[0],
-          { name: "Otra persona", document: "1.234.567-8" },
+          { name: "Otra persona", document: "1.234.567-0" },
         ],
       }).success,
     ).toBe(false);
